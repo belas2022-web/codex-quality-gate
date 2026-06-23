@@ -256,8 +256,55 @@ class CheckOrchestrator:
         if working_tree.returncode != 0 or working_tree.stdout.strip().lower() != "true":
             return skipped("git_diff_policy", "Git diff policy", "not a git working tree")
         started = time.perf_counter()
+        head = subprocess.run(
+            ("git", "rev-parse", "--verify", "HEAD"),
+            cwd=context.root,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=context.timeout_seconds,
+        )
+        if head.returncode != 0:
+            return failed(
+                "git_diff_policy",
+                "Git diff policy",
+                "Git repository has no baseline commit",
+                started,
+                ("git", "rev-parse", "--verify", "HEAD"),
+                stdout=head.stdout,
+                stderr=head.stderr,
+                status=CheckStatus.REVIEW_REQUIRED,
+            )
+        status = subprocess.run(
+            ("git", "status", "--porcelain=v1", "--untracked-files=all"),
+            cwd=context.root,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=context.timeout_seconds,
+        )
+        if status.returncode != 0:
+            return failed(
+                "git_diff_policy",
+                "Git diff policy",
+                status.stderr.strip() or "git status failed",
+                started,
+                ("git", "status", "--porcelain=v1", "--untracked-files=all"),
+                stdout=status.stdout,
+                stderr=status.stderr,
+            )
+        if _untracked_paths(status.stdout):
+            return failed(
+                "git_diff_policy",
+                "Git diff policy",
+                "Untracked files are not covered by git diff policy",
+                started,
+                ("git", "status", "--porcelain=v1", "--untracked-files=all"),
+                stdout=status.stdout,
+                status=CheckStatus.REVIEW_REQUIRED,
+            )
         completed = subprocess.run(
-            ("git", "diff", "--no-ext-diff"),
+            ("git", "diff", "--no-ext-diff", "HEAD", "--"),
             cwd=context.root,
             check=False,
             capture_output=True,
@@ -270,7 +317,7 @@ class CheckOrchestrator:
                 "Git diff policy",
                 completed.stderr.strip() or "git diff failed",
                 started,
-                ("git", "diff", "--no-ext-diff"),
+                ("git", "diff", "--no-ext-diff", "HEAD", "--"),
                 stdout=completed.stdout,
                 stderr=completed.stderr,
             )
@@ -284,7 +331,7 @@ class CheckOrchestrator:
                 "Git diff policy",
                 str(exc),
                 started,
-                ("git", "diff", "--no-ext-diff"),
+                ("git", "diff", "--no-ext-diff", "HEAD", "--"),
                 stdout=completed.stdout,
                 status=CheckStatus.REVIEW_REQUIRED,
             )
@@ -294,7 +341,7 @@ class CheckOrchestrator:
                 "Git diff policy",
                 decision.reason,
                 started,
-                ("git", "diff", "--no-ext-diff"),
+                ("git", "diff", "--no-ext-diff", "HEAD", "--"),
                 stdout=completed.stdout,
                 status=CheckStatus.REVIEW_REQUIRED,
             )
@@ -508,6 +555,10 @@ def _context_for_package(context: CheckContext, package_json: Path) -> CheckCont
 
 def _npm_executable() -> str:
     return shutil.which("npm") or shutil.which("npm.cmd") or "npm"
+
+
+def _untracked_paths(status_porcelain: str) -> list[str]:
+    return [line[3:] for line in status_porcelain.splitlines() if line.startswith("?? ")]
 
 
 def resolve_tool_command(

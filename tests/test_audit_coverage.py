@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import pkgutil
+import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
@@ -21,6 +22,23 @@ from codex_quality_gate.updates.security import (
     safe_join,
     validate_file_size,
 )
+
+
+def _git_commit(root: Path, message: str = "init") -> None:
+    subprocess.run(
+        (
+            "git",
+            "-c",
+            "user.name=Codex QA",
+            "-c",
+            "user.email=qa@example.invalid",
+            "commit",
+            "-m",
+            message,
+        ),
+        cwd=root,
+        check=True,
+    )
 
 
 def test_all_check_modules_expose_runnable_factories(tmp_path: Path) -> None:
@@ -129,6 +147,46 @@ def test_git_diff_policy_skips_broken_git_directory_without_diff_error(tmp_path:
     assert result.findings == []
     assert result.command == ()
     assert "git diff" not in result.stderr
+
+
+def test_git_diff_policy_requires_baseline_commit(tmp_path: Path) -> None:
+    subprocess.run(("git", "init", "--initial-branch=main"), cwd=tmp_path, check=True)
+    (tmp_path / "README.md").write_text("readme\n", encoding="utf-8")
+    context = CheckContext(root=tmp_path, profile=ProjectProfile(tmp_path))
+
+    result = CheckOrchestrator()._git_diff_policy(context)
+
+    assert result.status is CheckStatus.REVIEW_REQUIRED
+    assert result.findings[0].message == "Git repository has no baseline commit"
+
+
+def test_git_diff_policy_reviews_untracked_files(tmp_path: Path) -> None:
+    subprocess.run(("git", "init", "--initial-branch=main"), cwd=tmp_path, check=True)
+    (tmp_path / "README.md").write_text("readme\n", encoding="utf-8")
+    subprocess.run(("git", "add", "README.md"), cwd=tmp_path, check=True)
+    _git_commit(tmp_path)
+    (tmp_path / "new.py").write_text("print('new')\n", encoding="utf-8")
+    context = CheckContext(root=tmp_path, profile=ProjectProfile(tmp_path))
+
+    result = CheckOrchestrator()._git_diff_policy(context)
+
+    assert result.status is CheckStatus.REVIEW_REQUIRED
+    assert result.findings[0].message == "Untracked files are not covered by git diff policy"
+
+
+def test_git_diff_policy_reviews_staged_sensitive_changes(tmp_path: Path) -> None:
+    subprocess.run(("git", "init", "--initial-branch=main"), cwd=tmp_path, check=True)
+    (tmp_path / "README.md").write_text("readme\n", encoding="utf-8")
+    subprocess.run(("git", "add", "README.md"), cwd=tmp_path, check=True)
+    _git_commit(tmp_path)
+    (tmp_path / "pyproject.toml").write_text("[project]\nname = 'demo'\n", encoding="utf-8")
+    subprocess.run(("git", "add", "pyproject.toml"), cwd=tmp_path, check=True)
+    context = CheckContext(root=tmp_path, profile=ProjectProfile(tmp_path))
+
+    result = CheckOrchestrator()._git_diff_policy(context)
+
+    assert result.status is CheckStatus.REVIEW_REQUIRED
+    assert result.findings[0].message == "Sensitive path change requires review"
 
 
 def test_policy_review_and_secret_file_branches() -> None:

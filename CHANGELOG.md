@@ -85,3 +85,5 @@ Status: stable release target.
 - Blocks stable metadata generation when the signing secret is absent, the
   packaged public key is still the development placeholder, or the signing key
   does not match the packaged public key.
+- Extends `git_diff_policy` to require a baseline commit, review untracked
+  files, and include staged changes in sensitive-path review.

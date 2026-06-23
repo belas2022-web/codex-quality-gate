@@ -61,6 +61,26 @@ def test_semgrep_tool_resolution_finds_venv_unix_path(tmp_path: Path) -> None:
     assert command[0] == str(semgrep)
 
 
+def test_semgrep_tool_resolution_finds_current_env_script(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    scripts_dir = tmp_path / "runner-venv" / "Scripts"
+    python = scripts_dir / "python.exe"
+    semgrep = scripts_dir / "semgrep.exe"
+    scripts_dir.mkdir(parents=True)
+    python.write_text("", encoding="utf-8")
+    semgrep.write_text("", encoding="utf-8")
+    project_root = tmp_path / "external-project"
+    project_root.mkdir()
+
+    monkeypatch.setattr(orchestrator_module.sys, "executable", str(python))
+
+    command = orchestrator_module.resolve_tool_command(project_root, "semgrep", "semgrep")
+
+    assert command[0] == str(semgrep)
+
+
 def test_invalid_check_profile_exits_2_without_traceback(tmp_path: Path) -> None:
     result = runner.invoke(cli_module.app, ["check", str(tmp_path), "--profile", "missing"])
 

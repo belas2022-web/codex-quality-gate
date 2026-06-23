@@ -6,6 +6,7 @@ import py_compile
 import re
 import shutil
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -510,6 +511,13 @@ def resolve_tool_command(
         root / ".venv" / "Scripts" / executable,
         root / ".venv" / "bin" / executable,
     ]
+    current_env_bin = Path(sys.executable).resolve().parent
+    candidates.extend(
+        [
+            current_env_bin / f"{executable}.exe",
+            current_env_bin / executable,
+        ]
+    )
     for candidate in candidates:
         if candidate.exists():
             return (str(candidate), *args)

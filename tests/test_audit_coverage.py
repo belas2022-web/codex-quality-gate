@@ -4,11 +4,13 @@ import importlib
 import pkgutil
 from datetime import UTC, datetime
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 import codex_quality_gate.checks as checks_package
-from codex_quality_gate.checks.base import CheckContext, CheckStatus
+import codex_quality_gate.checks.base as checks_base
+from codex_quality_gate.checks.base import CheckContext, CheckStatus, CommandCheck
 from codex_quality_gate.checks.orchestrator import CheckOrchestrator
 from codex_quality_gate.core.errors import PolicyViolationError, SecurityVerificationError
 from codex_quality_gate.core.result import ProjectProfile
@@ -76,6 +78,30 @@ def test_orchestrator_missing_tool_ci_and_npm_branches(tmp_path: Path) -> None:
     (workflow / "quality.yml").write_text("name: quality\n", encoding="utf-8")
     ci_failed = orchestrator._ci_check(context)
     assert ci_failed.status is CheckStatus.FAILED
+
+
+def test_command_runner_sets_stable_tool_environment(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_run(command: tuple[str, ...], **kwargs: object) -> SimpleNamespace:
+        captured["command"] = command
+        captured["env"] = kwargs["env"]
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(checks_base.subprocess, "run", fake_run)
+    context = CheckContext(root=tmp_path, profile=ProjectProfile(tmp_path))
+
+    result = CommandCheck("npm_lint", "npm lint", ("npm", "run", "lint")).run(context)
+
+    env = captured["env"]
+    assert isinstance(env, dict)
+    assert result.status is CheckStatus.PASSED
+    assert env["PYTHONUTF8"] == "1"
+    assert env["PYTHONIOENCODING"] == "utf-8"
+    assert env["NPM_CONFIG_UPDATE_NOTIFIER"] == "false"
+    assert env["npm_config_update_notifier"] == "false"
 
 
 def test_git_diff_policy_skips_invalid_git_marker(tmp_path: Path) -> None:

@@ -275,4 +275,7 @@ def _command_env() -> dict[str, str]:
     env = os.environ.copy()
     env.setdefault("PYTHONUTF8", "1")
     env.setdefault("PYTHONIOENCODING", "utf-8")
+    env.setdefault("NPM_CONFIG_UPDATE_NOTIFIER", "false")
+    env.setdefault("npm_config_update_notifier", "false")
+    env.setdefault("NO_UPDATE_NOTIFIER", "1")
     return env

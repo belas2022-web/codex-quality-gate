@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
+import codex_quality_gate.updates.updater as updater_module
 from codex_quality_gate.core.errors import SecurityVerificationError
 from codex_quality_gate.updates.filesystem import UpdateLock, atomic_write, backup_file
 from codex_quality_gate.updates.hashing import sha256_bytes
@@ -20,6 +21,20 @@ def _keys() -> tuple[str, str]:
     public = private.public_key().public_bytes_raw()
     signature = private.sign(b"rules")
     return base64.b64encode(public).decode(), base64.b64encode(signature).decode()
+
+
+def _signed_manifest(payload: bytes) -> tuple[str, UpdateManifest]:
+    private = Ed25519PrivateKey.generate()
+    public = base64.b64encode(private.public_key().public_bytes_raw()).decode()
+    signature = base64.b64encode(private.sign(payload)).decode()
+    return public, UpdateManifest(
+        "1",
+        "now",
+        "later",
+        "https://good/rules",
+        sha256_bytes(payload),
+        signature,
+    )
 
 
 def test_manifest_signature_required() -> None:
@@ -121,3 +136,83 @@ def test_downloaded_artifact_not_executed() -> None:
     public_key, _signature = _keys()
     updater = Updater(["good"], public_key)
     assert hasattr(updater, "download_app_artifact")
+
+
+def test_download_rules_returns_verified_payload() -> None:
+    payload = b"rules"
+    public_key, manifest = _signed_manifest(payload)
+
+    class Client:
+        def get_bytes(
+            self,
+            url: str,
+            *,
+            allowed_domains: list[str],
+            max_size_bytes: int,
+        ) -> bytes:
+            assert url == "https://good/rules"
+            assert allowed_domains == ["good"]
+            assert max_size_bytes > 0
+            return payload
+
+    assert Updater(["good"], public_key, Client()).download_rules(manifest) == payload  # type: ignore[arg-type]
+
+
+def test_download_app_artifact_requires_manifest_url() -> None:
+    public_key, _signature = _keys()
+    manifest = UpdateManifest(
+        "1",
+        "now",
+        "later",
+        "https://good/rules",
+        "rules-hash",
+        "rules-signature",
+    )
+
+    with pytest.raises(SecurityVerificationError, match="no app artifact URL"):
+        Updater(["good"], public_key).download_app_artifact(manifest)
+
+
+def test_apply_rules_restores_backup_when_atomic_write_fails(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    payload = b"new rules"
+    public_key, manifest = _signed_manifest(payload)
+    data_dir = tmp_path / "data"
+    target = data_dir / "rules" / "rules.json"
+    target.parent.mkdir(parents=True)
+    target.write_bytes(b"old rules")
+
+    class Client:
+        def get_bytes(
+            self,
+            _url: str,
+            *,
+            allowed_domains: list[str],
+            max_size_bytes: int,
+        ) -> bytes:
+            assert allowed_domains == ["good"]
+            assert max_size_bytes > 0
+            return payload
+
+    real_atomic_write = updater_module.atomic_write
+    calls = 0
+
+    def flaky_atomic_write(path: str | Path, data: bytes) -> None:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise OSError("disk full")
+        real_atomic_write(path, data)
+
+    monkeypatch.setattr(updater_module, "atomic_write", flaky_atomic_write)
+
+    with pytest.raises(OSError, match="disk full"):
+        Updater(["good"], public_key, Client(), data_dir=data_dir).apply_rules(  # type: ignore[arg-type]
+            manifest,
+            "rules.json",
+            "rules.lock",
+        )
+
+    assert target.read_bytes() == b"old rules"

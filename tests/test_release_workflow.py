@@ -21,6 +21,7 @@ def test_release_workflow_is_autonomous_for_release_candidates() -> None:
     assert "npm ci" in workflow
     assert "npm run lint" in workflow
     assert "npm run typecheck" in workflow
+    assert "npm run test" in workflow
     assert "npm run build" in workflow
     assert "npm audit --audit-level=high" in workflow
     assert "python -m build" in workflow

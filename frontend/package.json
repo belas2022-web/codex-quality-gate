@@ -20,6 +20,7 @@
     "build": "tsc -b && vite build",
     "dev": "vite --host 127.0.0.1",
     "lint": "eslint .",
+    "test": "node --test test/*.test.mjs",
     "typecheck": "tsc -b --noEmit"
   },
   "type": "module",

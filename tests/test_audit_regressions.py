@@ -77,6 +77,24 @@ def test_default_config_matches_package_release_constants() -> None:
     assert updates_payload["ed25519_public_key_base64"] == DEFAULT_ED25519_PUBLIC_KEY_BASE64
 
 
+def test_default_update_allowlist_has_no_example_domains() -> None:
+    payload = _config_payload()
+    allowed_domains = payload["updates"]["allowed_domains"]
+
+    assert all("example." not in domain for domain in allowed_domains)
+
+
+def test_stable_release_docs_match_published_release_state() -> None:
+    readme = Path("README.md").read_text(encoding="utf-8")
+    release = Path("RELEASE.md").read_text(encoding="utf-8")
+    changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
+
+    assert "development placeholder only, replace before stable release" not in readme
+    assert "The default signing key is a development placeholder" not in readme
+    assert "Do not cut `v0.1.0` stable until:" not in release
+    assert "## 0.1.0\n\nStatus: stable release." in changelog
+
+
 def test_default_semgrep_catalog_is_not_empty() -> None:
     payload = yaml.safe_load(Path("src/codex_quality_gate/data/default_semgrep.yml").read_text())
     rules = payload["rules"]

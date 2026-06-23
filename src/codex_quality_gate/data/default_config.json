@@ -148,8 +148,7 @@
       "belas.github.io",
       "github.com",
       "objects.githubusercontent.com",
-      "github-releases.githubusercontent.com",
-      "cdn.example.com"
+      "github-releases.githubusercontent.com"
     ],
     "downgrade_forbidden": true,
     "ed25519_public_key_base64": "bD0tGFipU3EvgHc75z2XhJM0zf3uxxnrqGaeY6mbIGQ=",

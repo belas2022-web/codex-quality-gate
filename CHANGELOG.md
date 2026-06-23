@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.0
+
+Status: stable release.
+
+- Published the stable `v0.1.0` release from commit `235e896`.
+- Configured stable Ed25519 release signing with a real packaged public key and
+  matching GitHub Actions secret.
+- Tightened `git_diff_policy` so no-baseline repositories, untracked files, and
+  staged sensitive changes require review instead of passing silently.
+- Verified the release workflow builds and uploads wheel, sdist, rules,
+  Semgrep bundle, `SHA256SUMS`, and signed `latest.json`.
+
 ## 0.1.0rc3
 
 Status: release candidate.

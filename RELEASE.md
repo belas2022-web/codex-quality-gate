@@ -100,13 +100,19 @@ When signatures are present, verify that manifest signatures, rules signatures,
 rules hashes, artifact signatures, and artifact hashes all match. Downloaded
 artifacts must be verified and cached, never executed automatically.
 
-## Stable Release Criteria
+## Stable Release Evidence
 
-Do not cut `v0.1.0` stable until:
+`v0.1.0` was cut from commit `235e896af4f26a89e6e6bd383f8315d45b7e1bae`
+after these gates passed:
 
-- Real remote CI is green.
-- `v0.1.0-rc3` installs from artifact.
-- Update manifest and signatures are verified.
-- The gate has been tested on 2-3 real projects.
-- There are no P1 or P2 findings.
-- Known warnings are documented in README, SECURITY, and CHANGELOG.
+- Real remote CI was green.
+- `v0.1.0-rc3` installed from artifact.
+- Stable release signing used a real packaged Ed25519 public key and a matching
+  `RELEASE_ED25519_PRIVATE_KEY_B64` GitHub Actions secret.
+- The release workflow built and signed `latest.json`, wheel, sdist, rules,
+  Semgrep bundle, and `SHA256SUMS`.
+- The gate was tested on real external projects.
+- There were no P1 or P2 findings.
+
+For future stable releases, repeat the same checklist before pushing the stable
+tag.

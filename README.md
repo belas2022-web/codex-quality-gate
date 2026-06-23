@@ -5,13 +5,15 @@ with AI and Codex. It profiles repositories, builds a check plan, runs safe loca
 checks, stores findings, exposes a local dashboard, protects risky areas with
 policies, and supports signed rule/update metadata.
 
-The generated defaults replace the original placeholders:
+The generated defaults replace the original placeholders. The stable `v0.1.0`
+package ships with the real Ed25519 public key used to verify signed release
+metadata; `config.example.json` keeps placeholder values only as a local template.
 
 - App name: `codex-quality-gate`
 - GitHub owner: `belas`
 - Rules updates repository: `codex-quality-gate-updates`
 - App releases repository: `codex-quality-gate-releases`
-- Ed25519 public key: development placeholder only, replace before stable release
+- Ed25519 public key: stable release verification key
 - Token environment names: `SLACK_APP_TOKEN`, `TELEGRAM_BOT_TOKEN`,
   `DISCORD_BOT_TOKEN`, `TEAMS_CLIENT_ID`, `OPENAI_API_KEY`
 
@@ -176,5 +178,6 @@ codex-quality-gate check . --sarif > reports.sarif
 
 The project ships production-safe connector skeletons and local scanning logic.
 External services are only contacted when a connector/source is enabled and called.
-The default signing key is a development placeholder and must be replaced before
-stable release.
+`config.example.json` is intentionally a template and still contains placeholder
+values. The packaged default config uses the stable release public key and only
+allowlists the production GitHub/GitHub Pages update hosts.

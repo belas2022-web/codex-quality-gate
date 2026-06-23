@@ -152,7 +152,7 @@
       "cdn.example.com"
     ],
     "downgrade_forbidden": true,
-    "ed25519_public_key_base64": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+    "ed25519_public_key_base64": "bD0tGFipU3EvgHc75z2XhJM0zf3uxxnrqGaeY6mbIGQ=",
     "hash_required": true,
     "rollback_required": true,
     "signature_required": true,

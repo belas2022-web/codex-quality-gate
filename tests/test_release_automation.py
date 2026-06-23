@@ -142,6 +142,7 @@ def test_build_release_manifest_requires_real_public_key_for_stable(tmp_path: Pa
             tag="v0.1.0",
             commit="abc123",
             repository="belas2022-web/codex-quality-gate",
+            public_key_base64="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
             private_key_base64=private_key,
         )
 

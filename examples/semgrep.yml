@@ -1,0 +1,7 @@
+rules:
+  - id: codex-quality-gate.no-dynamic-evaluation
+    patterns:
+      - pattern: eval(...)
+    message: Dynamic evaluation is blocked.
+    severity: ERROR
+    languages: [python]

@@ -1,0 +1,583 @@
+{
+  "rules": [
+    {
+      "id": "cqg.python.eval",
+      "languages": [
+        "python"
+      ],
+      "message": "Dynamic eval executes arbitrary code.",
+      "severity": "ERROR",
+      "metadata": {
+        "source": "codex-quality-gate"
+      },
+      "pattern": "eval(...)"
+    },
+    {
+      "id": "cqg.python.exec",
+      "languages": [
+        "python"
+      ],
+      "message": "Dynamic exec executes arbitrary code.",
+      "severity": "ERROR",
+      "metadata": {
+        "source": "codex-quality-gate"
+      },
+      "pattern": "exec(...)"
+    },
+    {
+      "id": "cqg.python.shell-true",
+      "languages": [
+        "python"
+      ],
+      "message": "subprocess shell=True enables command injection.",
+      "severity": "ERROR",
+      "metadata": {
+        "source": "codex-quality-gate"
+      },
+      "pattern": "subprocess.$F(..., shell=True, ...)"
+    },
+    {
+      "id": "cqg.python.pickle-loads",
+      "languages": [
+        "python"
+      ],
+      "message": "Pickle deserialization can execute code.",
+      "severity": "ERROR",
+      "metadata": {
+        "source": "codex-quality-gate"
+      },
+      "pattern": "pickle.loads(...)"
+    },
+    {
+      "id": "cqg.python.yaml-load",
+      "languages": [
+        "python"
+      ],
+      "message": "Use yaml.safe_load or SafeLoader.",
+      "severity": "ERROR",
+      "metadata": {
+        "source": "codex-quality-gate"
+      },
+      "pattern": "yaml.load(...)"
+    },
+    {
+      "id": "cqg.python.verify-false",
+      "languages": [
+        "python"
+      ],
+      "message": "TLS verification is disabled.",
+      "severity": "ERROR",
+      "metadata": {
+        "source": "codex-quality-gate"
+      },
+      "pattern": "$HTTP.$METHOD(..., verify=False, ...)"
+    },
+    {
+      "id": "cqg.python.requests-no-timeout",
+      "languages": [
+        "python"
+      ],
+      "message": "Review requests calls for explicit timeout.",
+      "severity": "WARNING",
+      "metadata": {
+        "source": "codex-quality-gate"
+      },
+      "patterns": [
+        {
+          "pattern-either": [
+            {
+              "patterns": [
+                {
+                  "pattern": "requests.get(...)"
+                },
+                {
+                  "pattern-not": "requests.get(..., timeout=$TIMEOUT, ...)"
+                }
+              ]
+            },
+            {
+              "patterns": [
+                {
+                  "pattern": "requests.post(...)"
+                },
+                {
+                  "pattern-not": "requests.post(..., timeout=$TIMEOUT, ...)"
+                }
+              ]
+            },
+            {
+              "patterns": [
+                {
+                  "pattern": "requests.put(...)"
+                },
+                {
+                  "pattern-not": "requests.put(..., timeout=$TIMEOUT, ...)"
+                }
+              ]
+            },
+            {
+              "patterns": [
+                {
+                  "pattern": "requests.delete(...)"
+                },
+                {
+                  "pattern-not": "requests.delete(..., timeout=$TIMEOUT, ...)"
+                }
+              ]
+            },
+            {
+              "patterns": [
+                {
+                  "pattern-inside": "$SESSION = requests.Session()\n..."
+                },
+                {
+                  "pattern": "$SESSION.get(...)"
+                },
+                {
+                  "pattern-not": "$SESSION.get(..., timeout=$TIMEOUT, ...)"
+                }
+              ]
+            },
+            {
+              "patterns": [
+                {
+                  "pattern-inside": "$SESSION = requests.Session()\n..."
+                },
+                {
+                  "pattern": "$SESSION.post(...)"
+                },
+                {
+                  "pattern-not": "$SESSION.post(..., timeout=$TIMEOUT, ...)"
+                }
+              ]
+            },
+            {
+              "patterns": [
+                {
+                  "pattern-inside": "$SESSION = requests.Session()\n..."
+                },
+                {
+                  "pattern": "$SESSION.put(...)"
+                },
+                {
+                  "pattern-not": "$SESSION.put(..., timeout=$TIMEOUT, ...)"
+                }
+              ]
+            },
+            {
+              "patterns": [
+                {
+                  "pattern-inside": "$SESSION = requests.Session()\n..."
+                },
+                {
+                  "pattern": "$SESSION.delete(...)"
+                },
+                {
+                  "pattern-not": "$SESSION.delete(..., timeout=$TIMEOUT, ...)"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cqg.python.sql-fstring",
+      "languages": [
+        "python"
+      ],
+      "message": "SQL f-string requires parameterization.",
+      "severity": "ERROR",
+      "metadata": {
+        "source": "codex-quality-gate"
+      },
+      "pattern": "$DB.execute(f\"...\")"
+    },
+    {
+      "id": "cqg.python.tempfile-mktemp",
+      "languages": [
+        "python"
+      ],
+      "message": "tempfile.mktemp is insecure.",
+      "severity": "WARNING",
+      "metadata": {
+        "source": "codex-quality-gate"
+      },
+      "pattern": "tempfile.mktemp(...)"
+    },
+    {
+      "id": "cqg.python.extractall",
+      "languages": [
+        "python"
+      ],
+      "message": "Archive extraction requires member validation.",
+      "severity": "ERROR",
+      "metadata": {
+        "source": "codex-quality-gate"
+      },
+      "pattern": "$ARCHIVE.extractall(...)"
+    },
+    {
+      "id": "cqg.python.md5",
+      "languages": [
+        "python"
+      ],
+      "message": "MD5 is weak for security hashing.",
+      "severity": "WARNING",
+      "metadata": {
+        "source": "codex-quality-gate"
+      },
+      "pattern": "hashlib.md5(...)"
+    },
+    {
+      "id": "cqg.python.random-secret",
+      "languages": [
+        "python"
+      ],
+      "message": "Review random use for secrets.",
+      "severity": "WARNING",
+      "metadata": {
+        "source": "codex-quality-gate"
+      },
+      "pattern": "random.$F(...)"
+    },
+    {
+      "id": "cqg.javascript.eval",
+      "languages": [
+        "javascript",
+        "typescript"
+      ],
+      "message": "Dynamic eval executes arbitrary code.",
+      "severity": "ERROR",
+      "metadata": {
+        "source": "codex-quality-gate"
+      },
+      "pattern": "eval(...)"
+    },
+    {
+      "id": "cqg.javascript.new-function",
+      "languages": [
+        "javascript",
+        "typescript"
+      ],
+      "message": "Function constructor executes dynamic code.",
+      "severity": "ERROR",
+      "metadata": {
+        "source": "codex-quality-gate"
+      },
+      "pattern": "new Function(...)"
+    },
+    {
+      "id": "cqg.javascript.inner-html",
+      "languages": [
+        "javascript",
+        "typescript"
+      ],
+      "message": "innerHTML assignment can introduce XSS.",
+      "severity": "WARNING",
+      "metadata": {
+        "source": "codex-quality-gate"
+      },
+      "pattern": "$E.innerHTML = $X"
+    },
+    {
+      "id": "cqg.javascript.dangerous-html",
+      "languages": [
+        "javascript",
+        "typescript"
+      ],
+      "message": "dangerouslySetInnerHTML requires sanitization.",
+      "severity": "ERROR",
+      "metadata": {
+        "source": "codex-quality-gate"
+      },
+      "pattern": "<$X dangerouslySetInnerHTML={...} />"
+    },
+    {
+      "id": "cqg.javascript.document-write",
+      "languages": [
+        "javascript",
+        "typescript"
+      ],
+      "message": "document.write can introduce XSS.",
+      "severity": "WARNING",
+      "metadata": {
+        "source": "codex-quality-gate"
+      },
+      "pattern": "document.write(...)"
+    },
+    {
+      "id": "cqg.javascript.localstorage-token",
+      "languages": [
+        "javascript",
+        "typescript"
+      ],
+      "message": "Review localStorage token storage.",
+      "severity": "WARNING",
+      "metadata": {
+        "source": "codex-quality-gate"
+      },
+      "pattern": "localStorage.setItem($KEY, $VALUE)"
+    },
+    {
+      "id": "cqg.javascript.child-process-exec",
+      "languages": [
+        "javascript",
+        "typescript"
+      ],
+      "message": "child_process.exec can enable command injection.",
+      "severity": "ERROR",
+      "metadata": {
+        "source": "codex-quality-gate"
+      },
+      "pattern": "child_process.exec(...)"
+    },
+    {
+      "id": "cqg.javascript.test-only",
+      "languages": [
+        "javascript",
+        "typescript"
+      ],
+      "message": "Focused tests must not be committed.",
+      "severity": "ERROR",
+      "metadata": {
+        "source": "codex-quality-gate"
+      },
+      "pattern": "test.only(...)"
+    },
+    {
+      "id": "cqg.javascript.test-skip",
+      "languages": [
+        "javascript",
+        "typescript"
+      ],
+      "message": "Skipped tests require review.",
+      "severity": "WARNING",
+      "metadata": {
+        "source": "codex-quality-gate"
+      },
+      "pattern": "test.skip(...)"
+    },
+    {
+      "id": "cqg.typescript.ignore",
+      "languages": [
+        "typescript"
+      ],
+      "message": "TypeScript ignore directives require review.",
+      "severity": "WARNING",
+      "metadata": {
+        "source": "codex-quality-gate"
+      },
+      "pattern-regex": "@ts-ignore"
+    },
+    {
+      "id": "cqg.typescript.nocheck",
+      "languages": [
+        "typescript"
+      ],
+      "message": "ts-nocheck disables file type checking.",
+      "severity": "WARNING",
+      "metadata": {
+        "source": "codex-quality-gate"
+      },
+      "pattern-regex": "@ts-nocheck"
+    },
+    {
+      "id": "cqg.updater.no-signature",
+      "languages": [
+        "python"
+      ],
+      "message": "Updater signature verification is disabled.",
+      "severity": "ERROR",
+      "metadata": {
+        "source": "codex-quality-gate"
+      },
+      "pattern": "verify_signature = False"
+    },
+    {
+      "id": "cqg.updater.no-hash",
+      "languages": [
+        "python"
+      ],
+      "message": "Updater hash verification is disabled.",
+      "severity": "ERROR",
+      "metadata": {
+        "source": "codex-quality-gate"
+      },
+      "pattern": "verify_hash = False"
+    },
+    {
+      "id": "cqg.updater.http-url",
+      "languages": [
+        "python"
+      ],
+      "message": "Updater URL must use HTTPS.",
+      "severity": "ERROR",
+      "metadata": {
+        "source": "codex-quality-gate"
+      },
+      "pattern": "update_url = \"http://...\""
+    },
+    {
+      "id": "cqg.updater.auto-execute",
+      "languages": [
+        "python"
+      ],
+      "message": "Downloaded artifacts must not be executed.",
+      "severity": "ERROR",
+      "metadata": {
+        "source": "codex-quality-gate"
+      },
+      "patterns": [
+        {
+          "pattern-either": [
+            {
+              "pattern": "subprocess.run($ARTIFACT, ...)"
+            },
+            {
+              "pattern": "os.startfile($ARTIFACT)"
+            },
+            {
+              "pattern": "webbrowser.open($ARTIFACT)"
+            }
+          ]
+        },
+        {
+          "metavariable-regex": {
+            "metavariable": "$ARTIFACT",
+            "regex": "(?i).*(download|artifact|payload|installer|update_file|app_file|binary).*"
+          }
+        }
+      ]
+    },
+    {
+      "id": "cqg.updater.no-rollback",
+      "languages": [
+        "python"
+      ],
+      "message": "Updater rollback is disabled.",
+      "severity": "ERROR",
+      "metadata": {
+        "source": "codex-quality-gate"
+      },
+      "pattern": "rollback = False"
+    },
+    {
+      "id": "cqg.updater.no-lock",
+      "languages": [
+        "python"
+      ],
+      "message": "Updater lock is disabled.",
+      "severity": "ERROR",
+      "metadata": {
+        "source": "codex-quality-gate"
+      },
+      "pattern": "update_lock = False"
+    },
+    {
+      "id": "cqg.updater.no-timeout",
+      "languages": [
+        "python"
+      ],
+      "message": "Updater request requires timeout.",
+      "severity": "WARNING",
+      "metadata": {
+        "source": "codex-quality-gate"
+      },
+      "patterns": [
+        {
+          "pattern": "requests.get($URL, ...)"
+        },
+        {
+          "pattern-not": "requests.get($URL, ..., timeout=$TIMEOUT, ...)"
+        }
+      ]
+    },
+    {
+      "id": "cqg.updater.version-string-compare",
+      "languages": [
+        "python"
+      ],
+      "message": "Use packaging.version.Version comparisons.",
+      "severity": "WARNING",
+      "metadata": {
+        "source": "codex-quality-gate"
+      },
+      "pattern": "remote_version > local_version"
+    },
+    {
+      "id": "cqg.chat.ui-scraping",
+      "languages": [
+        "python",
+        "javascript",
+        "typescript"
+      ],
+      "message": "ChatBridge must not scrape chat UIs.",
+      "severity": "ERROR",
+      "metadata": {
+        "source": "codex-quality-gate"
+      },
+      "pattern": "$BROWSER.goto(\"https://chat.openai.com\")"
+    },
+    {
+      "id": "cqg.chat.token-logging",
+      "languages": [
+        "python"
+      ],
+      "message": "ChatBridge must redact tokens before logging.",
+      "severity": "ERROR",
+      "metadata": {
+        "source": "codex-quality-gate"
+      },
+      "pattern": "logger.info(..., token, ...)"
+    },
+    {
+      "id": "cqg.chat.full-source-send",
+      "languages": [
+        "python"
+      ],
+      "message": "ChatBridge must not send full source by default.",
+      "severity": "ERROR",
+      "metadata": {
+        "source": "codex-quality-gate"
+      },
+      "pattern": "send_full_source(...)"
+    },
+    {
+      "id": "cqg.chat.writeback-no-permission",
+      "languages": [
+        "python"
+      ],
+      "message": "Chat writeback requires permission checks.",
+      "severity": "ERROR",
+      "metadata": {
+        "source": "codex-quality-gate"
+      },
+      "pattern": "write_back(...)"
+    },
+    {
+      "id": "cqg.chat.no-audit",
+      "languages": [
+        "python"
+      ],
+      "message": "Chat write actions require audit events.",
+      "severity": "ERROR",
+      "metadata": {
+        "source": "codex-quality-gate"
+      },
+      "pattern": "skip_audit = True"
+    },
+    {
+      "id": "cqg.chat.no-project-scope",
+      "languages": [
+        "python"
+      ],
+      "message": "Chat commands require project scope.",
+      "severity": "ERROR",
+      "metadata": {
+        "source": "codex-quality-gate"
+      },
+      "pattern": "project_scope = None"
+    }
+  ]
+}

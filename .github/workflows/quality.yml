@@ -1,0 +1,45 @@
+name: quality
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: python -m pip install --upgrade pip setuptools wheel
+      - run: python -m pip install -e ".[dev]"
+      - run: npm ci
+        working-directory: frontend
+      - run: python -m ruff check .
+      - run: python -m ruff format --check .
+      - run: python -m mypy .
+      - run: python -m codex_quality_gate check-catalogs
+      - run: python -m pytest --cov
+      - run: npm run lint
+        working-directory: frontend
+      - run: npm run typecheck
+        working-directory: frontend
+      - run: npm run build
+        working-directory: frontend
+      - run: npm audit --audit-level=high
+        working-directory: frontend
+      - run: semgrep --error --config src/codex_quality_gate/data/default_semgrep.yml src
+      - run: bandit -q -r src -ll
+      - run: pip-audit . --skip-editable
+      - run: codex-quality-gate check . --profile security --fail-on-warning --sarif
+      - run: codex-quality-gate check . --profile full --json
+      - run: python -m build

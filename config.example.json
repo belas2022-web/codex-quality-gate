@@ -1,0 +1,201 @@
+{
+  "app": {
+    "default_mode": "observe",
+    "name": "codex-quality-gate",
+    "version": "0.1.0"
+  },
+  "bootstrap": {
+    "allow_admin_install": false,
+    "allow_global_install": false,
+    "create_venv_if_missing": true,
+    "default_profile": "standard",
+    "dry_run_by_default": true,
+    "install_node_dev_dependencies": false
+  },
+  "chat_bridge": {
+    "connectors": [
+      {
+        "enabled": true,
+        "name": "chatgpt-import",
+        "type": "chatgpt_export"
+      },
+      {
+        "api_key_env": "OPENAI_API_KEY",
+        "enabled": false,
+        "name": "openai-app-conversations",
+        "type": "openai_conversations"
+      },
+      {
+        "allowed_read_channels": [],
+        "allowed_write_channels": [],
+        "enabled": false,
+        "name": "slack-main",
+        "token_env": "SLACK_APP_TOKEN",
+        "type": "slack"
+      },
+      {
+        "allowed_chat_ids": [],
+        "enabled": false,
+        "name": "telegram-main",
+        "token_env": "TELEGRAM_BOT_TOKEN",
+        "type": "telegram"
+      },
+      {
+        "allowed_channel_ids": [],
+        "enabled": false,
+        "name": "discord-main",
+        "token_env": "DISCORD_BOT_TOKEN",
+        "type": "discord"
+      },
+      {
+        "allowed_chat_ids": [],
+        "client_id_env": "TEAMS_CLIENT_ID",
+        "enabled": false,
+        "name": "teams-main",
+        "type": "teams"
+      }
+    ],
+    "default_writeback_requires_approval": true,
+    "enabled": true,
+    "redact_secrets": true,
+    "send_full_code_allowed": false
+  },
+  "checks": {
+    "profiles": {
+      "full": [
+        "security",
+        "docs",
+        "performance",
+        "compatibility",
+        "api_contract",
+        "database",
+        "frontend",
+        "docker",
+        "ci",
+        "rare_edges"
+      ],
+      "minimal": [
+        "syntax",
+        "format",
+        "lint",
+        "basic_tests",
+        "custom_rules"
+      ],
+      "security": [
+        "standard",
+        "semgrep",
+        "bandit",
+        "pip_audit",
+        "osv",
+        "updater_security",
+        "chat_security"
+      ],
+      "standard": [
+        "syntax",
+        "format",
+        "lint",
+        "typecheck",
+        "tests",
+        "coverage",
+        "custom_rules",
+        "secrets",
+        "dependency_scan",
+        "git_diff_policy"
+      ]
+    }
+  },
+  "dashboard": {
+    "auth_required_when_public": true,
+    "host": "127.0.0.1",
+    "port": 8765
+  },
+  "policies": {
+    "autofix": {
+      "allowed_tools": [
+        "ruff-format",
+        "ruff-fix",
+        "prettier",
+        "eslint-fix",
+        "gofmt",
+        "cargo-fmt"
+      ],
+      "forbidden_paths": [
+        ".git/",
+        ".env",
+        "secrets/",
+        "private_keys/",
+        "tokens/"
+      ],
+      "mode": "observe",
+      "review_required_paths": [
+        ".github/",
+        "pyproject.toml",
+        "package.json",
+        "package-lock.json",
+        "requirements.txt",
+        "Dockerfile",
+        "docker-compose.yml",
+        "migrations/",
+        "auth/",
+        "updater/",
+        "security/",
+        "chat_bridge/"
+      ]
+    }
+  },
+  "updates": {
+    "allowed_domains": [
+      "belas.github.io",
+      "github.com",
+      "objects.githubusercontent.com",
+      "github-releases.githubusercontent.com",
+      "cdn.example.com"
+    ],
+    "downgrade_forbidden": true,
+    "ed25519_public_key_base64": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+    "hash_required": true,
+    "rollback_required": true,
+    "signature_required": true,
+    "sources": [
+      {
+        "enabled": true,
+        "manifest_url": "https://belas.github.io/codex-quality-gate-updates/latest.json",
+        "name": "primary-rules",
+        "priority": 100,
+        "type": "github_pages"
+      },
+      {
+        "enabled": true,
+        "name": "primary-app-releases",
+        "priority": 90,
+        "repository": "belas/codex-quality-gate-releases",
+        "type": "github_releases"
+      },
+      {
+        "enabled": true,
+        "name": "osv-vulnerabilities",
+        "priority": 80,
+        "type": "osv"
+      },
+      {
+        "enabled": true,
+        "name": "github-advisories",
+        "priority": 70,
+        "type": "github_advisory"
+      },
+      {
+        "enabled": true,
+        "name": "semgrep-rules",
+        "priority": 60,
+        "type": "semgrep_registry"
+      },
+      {
+        "enabled": false,
+        "name": "offline-local-rules",
+        "path": "./enterprise-rules",
+        "priority": 50,
+        "type": "local_folder"
+      }
+    ]
+  }
+}

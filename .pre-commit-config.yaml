@@ -1,0 +1,28 @@
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: python -m ruff check --fix
+        language: system
+        types_or: [python]
+      - id: ruff-format
+        name: ruff format
+        entry: python -m ruff format
+        language: system
+        types_or: [python]
+      - id: mypy
+        name: mypy
+        entry: python -m mypy .
+        language: system
+        pass_filenames: false
+      - id: pytest-quick
+        name: pytest quick
+        entry: python -m pytest -q
+        language: system
+        pass_filenames: false
+      - id: codex-quality-gate
+        name: codex-quality-gate
+        entry: python -m codex_quality_gate check . --fail-on-warning
+        language: system
+        pass_filenames: false

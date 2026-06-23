@@ -1,0 +1,5 @@
+{
+  "scan": "scan project backend-api",
+  "send_report": "send report backend-api",
+  "update_rules": "update rules backend-api"
+}

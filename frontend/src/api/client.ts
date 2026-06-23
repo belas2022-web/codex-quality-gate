@@ -1,4 +1,5 @@
 const API_BASE = '/api';
+const DASHBOARD_TOKEN_STORAGE_KEY = 'codex_quality_gate.dashboard_token';
 
 export type DashboardSummary = {
   projects: number;
@@ -72,6 +73,36 @@ export type AuditEvent = {
   payload: Record<string, unknown>;
 };
 
+export class DashboardApiError extends Error {
+  constructor(
+    public readonly path: string,
+    public readonly status: number,
+  ) {
+    super(`API ${path} failed with ${status}`);
+  }
+}
+
+let dashboardToken = readStoredDashboardToken();
+
+export function getDashboardToken(): string {
+  return dashboardToken;
+}
+
+export function setDashboardToken(token: string): void {
+  dashboardToken = token.trim();
+  const storage = browserSessionStorage();
+  if (!storage) return;
+  if (dashboardToken) {
+    storage.setItem(DASHBOARD_TOKEN_STORAGE_KEY, dashboardToken);
+  } else {
+    storage.removeItem(DASHBOARD_TOKEN_STORAGE_KEY);
+  }
+}
+
+export function clearDashboardToken(): void {
+  setDashboardToken('');
+}
+
 export async function fetchSummary(): Promise<DashboardSummary> {
   return request<DashboardSummary>('/summary');
 }
@@ -80,8 +111,9 @@ export async function fetchProjects(): Promise<ProjectSummary[]> {
   return request<ProjectSummary[]>('/projects');
 }
 
-export async function fetchFindings(): Promise<Finding[]> {
-  return request<Finding[]>('/findings');
+export async function fetchFindings(severity = ''): Promise<Finding[]> {
+  const query = severity ? `?severity=${encodeURIComponent(severity)}` : '';
+  return request<Finding[]>(`/findings${query}`);
 }
 
 export async function fetchRuns(): Promise<ScanRun[]> {
@@ -104,12 +136,41 @@ export async function fetchAuditEvents(): Promise<AuditEvent[]> {
   return request<AuditEvent[]>('/audit');
 }
 
-async function request<T>(path: string): Promise<T> {
+export async function scanProject(projectName: string): Promise<{ project: string; status: string }> {
+  return request<{ project: string; status: string }>(
+    `/projects/${encodeURIComponent(projectName)}/scan`,
+    { method: 'POST' },
+  );
+}
+
+async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const token = getDashboardToken();
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    ...(init.headers as Record<string, string> | undefined),
+  };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
   const response = await fetch(`${API_BASE}${path}`, {
-    headers: { Accept: 'application/json' },
+    ...init,
+    headers,
   });
   if (!response.ok) {
-    throw new Error(`API ${path} failed with ${response.status}`);
+    throw new DashboardApiError(path, response.status);
   }
   return response.json() as Promise<T>;
+}
+
+function readStoredDashboardToken(): string {
+  return browserSessionStorage()?.getItem(DASHBOARD_TOKEN_STORAGE_KEY) ?? '';
+}
+
+function browserSessionStorage(): Storage | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    return window.sessionStorage;
+  } catch {
+    return null;
+  }
 }

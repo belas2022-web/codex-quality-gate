@@ -61,12 +61,12 @@ export default function App() {
           ))}
         </nav>
       </aside>
-      {renderPage(page)}
+      {renderPage(page, setPage)}
     </main>
   );
 }
 
-function renderPage(page: PageKey) {
+function renderPage(page: PageKey, setPage: (page: PageKey) => void) {
   switch (page) {
     case 'projects':
       return <Projects />;
@@ -90,6 +90,6 @@ function renderPage(page: PageKey) {
       return <Settings />;
     case 'dashboard':
     default:
-      return <Dashboard />;
+      return <Dashboard onNavigate={setPage} />;
   }
 }

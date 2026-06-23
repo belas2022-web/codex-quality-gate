@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import type { Finding } from '../api/client';
 
 type Props = {
@@ -6,17 +8,32 @@ type Props = {
 
 export default function FindingsTable({ findings }: Props) {
   const rows = findings ?? [];
+  const [severity, setSeverity] = useState<string>('all');
+  const visibleRows =
+    severity === 'all'
+      ? rows
+      : rows.filter((finding) => finding.severity.toLowerCase() === severity);
+
   return (
     <article className="panel">
       <div className="panel-head">
         <h2>Findings needing attention</h2>
-        <button>Filter</button>
+        <label className="select-control">
+          <span className="sr-only">Finding severity</span>
+          <select onChange={(event) => setSeverity(event.target.value)} value={severity}>
+            <option value="all">All</option>
+            <option value="critical">Critical</option>
+            <option value="error">Error</option>
+            <option value="warning">Warning</option>
+            <option value="info">Info</option>
+          </select>
+        </label>
       </div>
       <div className="finding-list">
-        {rows.length === 0 ? (
+        {visibleRows.length === 0 ? (
           <p className="empty-state">No findings recorded.</p>
         ) : (
-          rows.slice(0, 6).map((finding) => (
+          visibleRows.slice(0, 6).map((finding) => (
             <div className="finding-row" key={finding.id}>
               <span className={`severity ${finding.severity}`}>{finding.severity}</span>
               <strong>{finding.rule_id}</strong>

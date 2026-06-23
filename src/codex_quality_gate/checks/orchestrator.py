@@ -505,10 +505,6 @@ def resolve_tool_command(
     module: str,
     *args: str,
 ) -> tuple[str, ...]:
-    path_tool = shutil.which(executable)
-    if path_tool:
-        return (path_tool, *args)
-
     candidates = [
         root / ".venv" / "Scripts" / f"{executable}.exe",
         root / ".venv" / "Scripts" / executable,
@@ -517,6 +513,10 @@ def resolve_tool_command(
     for candidate in candidates:
         if candidate.exists():
             return (str(candidate), *args)
+
+    path_tool = shutil.which(executable)
+    if path_tool:
+        return (path_tool, *args)
 
     if importlib.util.find_spec(module) is not None:
         return python_module_command(module, *args)

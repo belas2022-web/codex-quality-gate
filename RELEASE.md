@@ -1,10 +1,10 @@
 # Release Checklist
 
-## v0.1.0-rc2 Criteria
+## v0.1.0-rc3 Criteria
 
-Use a real remote repository for the final release-candidate rehearsal. A local
-bare origin is useful for git mechanics, but it does not validate hosted CI,
-permissions, tag workflows, or release artifacts.
+Use the hosted release workflow for the final release-candidate rehearsal. A
+local build is useful for mechanics, but it does not validate hosted CI
+permissions, tag workflows, uploaded artifacts, or GitHub Release publishing.
 
 1. Commit the release-prep changes.
 2. Push to the real remote.
@@ -12,11 +12,15 @@ permissions, tag workflows, or release artifacts.
 4. Install Python and frontend dependencies.
 5. Run the full release gate from the clean clone.
 6. Confirm hosted CI is green.
-7. Tag `v0.1.0-rc2`.
-8. Build and sign RC artifacts.
+7. Tag `v0.1.0-rc3`.
+8. Confirm the release workflow uploads wheel, sdist, rules, Semgrep bundle,
+   `SHA256SUMS`, and `latest.json`.
+9. Confirm GitHub Release assets match the workflow artifacts.
 
 `v0.1.0-rc1` was published and CI-verified, but it is superseded by `v0.1.0-rc2`
 because field validation found a Semgrep resolver failure on external projects.
+`v0.1.0-rc3` keeps the `v0.1.0-rc2` fixes and adds autonomous release
+publishing.
 
 ## Clean Clone Gate
 
@@ -72,10 +76,10 @@ On a temporary branch, confirm the policy reacts to risky diffs:
 
 ## Signed Artifacts
 
-The release update channel must publish signed metadata and artifacts:
+The release update channel must publish metadata and artifacts:
 
-- `codex_quality_gate-0.1.0rc2-py3-none-any.whl`
-- `codex_quality_gate-0.1.0rc2.tar.gz`
+- `codex_quality_gate-0.1.0rc3-py3-none-any.whl`
+- `codex_quality_gate-0.1.0rc3.tar.gz`
 - rules JSON bundle
 - Semgrep bundle
 - SHA-256 hashes
@@ -83,16 +87,20 @@ The release update channel must publish signed metadata and artifacts:
 - `latest.json`
 - manifest signature
 
-Verify that manifest signatures, rules signatures, rules hashes, artifact
-signatures, and artifact hashes all match. Downloaded artifacts must be verified
-and cached, never executed automatically.
+Release candidates may be published as `unsigned-rc` while the release workflow
+is being rehearsed. Stable releases must set `RELEASE_ED25519_PRIVATE_KEY_B64`;
+the workflow blocks stable metadata generation when the signing key is absent.
+
+When signatures are present, verify that manifest signatures, rules signatures,
+rules hashes, artifact signatures, and artifact hashes all match. Downloaded
+artifacts must be verified and cached, never executed automatically.
 
 ## Stable Release Criteria
 
 Do not cut `v0.1.0` stable until:
 
 - Real remote CI is green.
-- `v0.1.0-rc2` installs from artifact.
+- `v0.1.0-rc3` installs from artifact.
 - Update manifest and signatures are verified.
 - The gate has been tested on 2-3 real projects.
 - There are no P1 or P2 findings.

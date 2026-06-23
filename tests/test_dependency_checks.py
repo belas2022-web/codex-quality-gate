@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 
-from codex_quality_gate.checks.base import CheckContext
+import pytest
+
+from codex_quality_gate.checks.base import CheckContext, CommandCheck
 from codex_quality_gate.checks.orchestrator import CheckOrchestrator
 from codex_quality_gate.core.result import ProjectProfile
 from codex_quality_gate.rules.rule_engine import RuleEngine
@@ -27,6 +30,35 @@ def test_osv_vulnerability_parsed() -> None:
 def test_pip_audit_result_parsed() -> None:
     payload = {"name": "pkg", "vulns": [{"id": "PYSEC-1"}]}
     assert payload["vulns"][0]["id"] == "PYSEC-1"
+
+
+def test_command_checks_force_utf8_for_python_subprocesses(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured_env: dict[str, str] = {}
+
+    def fake_run(
+        command: tuple[str, ...],
+        **kwargs: object,
+    ) -> subprocess.CompletedProcess[str]:
+        env = kwargs["env"]
+        assert isinstance(env, dict)
+        captured_env.update(env)
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    monkeypatch.delenv("PYTHONUTF8", raising=False)
+    monkeypatch.delenv("PYTHONIOENCODING", raising=False)
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    profile = ProjectProfile(tmp_path)
+    result = CommandCheck("cmd", "Command", ("python", "--version")).run(
+        CheckContext(root=tmp_path, profile=profile)
+    )
+
+    assert result.exit_code == 0
+    assert captured_env["PYTHONUTF8"] == "1"
+    assert captured_env["PYTHONIOENCODING"] == "utf-8"
 
 
 def test_npm_audit_result_parsed() -> None:

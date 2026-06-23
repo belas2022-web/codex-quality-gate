@@ -2,17 +2,131 @@ name: release
 
 on:
   workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  PYTHONUTF8: "1"
+  PYTHONIOENCODING: utf-8
 
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - run: python -m pip install build
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: python -m pip install --upgrade pip setuptools wheel
+      - run: python -m pip install -e ".[dev]"
+      - run: npm ci
+        working-directory: frontend
+
+      - name: Verify tag matches package version
+        shell: bash
+        run: |
+          PACKAGE_VERSION="$(python - <<'PY'
+          from importlib.metadata import version
+          print(version("codex-quality-gate"))
+          PY
+          )"
+          EXPECTED_TAG="$(python - <<'PY'
+          from importlib.metadata import version
+          from codex_quality_gate.release_automation import expected_tag_for_version
+          print(expected_tag_for_version(version("codex-quality-gate")))
+          PY
+          )"
+          echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> "$GITHUB_ENV"
+          echo "EXPECTED_TAG=$EXPECTED_TAG" >> "$GITHUB_ENV"
+          if [ "${GITHUB_REF_TYPE}" = "tag" ] && [ "${GITHUB_REF_NAME}" != "$EXPECTED_TAG" ]; then
+            echo "Tag ${GITHUB_REF_NAME} does not match package version ${PACKAGE_VERSION}; expected ${EXPECTED_TAG}" >&2
+            exit 1
+          fi
+
+      - run: python -m ruff check .
+      - run: python -m ruff format --check .
+      - run: python -m mypy .
+      - run: python -m codex_quality_gate check-catalogs
+      - run: python -m pytest -q
+      - run: python -m pytest --cov
+      - run: npm run lint
+        working-directory: frontend
+      - run: npm run typecheck
+        working-directory: frontend
+      - run: npm run build
+        working-directory: frontend
+      - run: npm audit --audit-level=high
+        working-directory: frontend
+      - run: semgrep --error --config src/codex_quality_gate/data/default_semgrep.yml src
+      - run: bandit -q -r src -ll
+      - run: pip-audit
+      - run: codex-quality-gate check . --fail-on-warning
+      - run: codex-quality-gate check . --profile security --json
+      - run: codex-quality-gate check . --profile full --json
+
       - run: python -m build
-      - run: sha256sum dist/* > dist/SHA256SUMS
-      - run: echo "sign dist artifacts with offline Ed25519 release key"
-      - run: echo "never publish unsigned artifact as stable"
+      - name: Add update bundles
+        shell: bash
+        run: |
+          cp src/codex_quality_gate/data/default_rules.json dist/rules.json
+          cp src/codex_quality_gate/data/default_semgrep.yml dist/semgrep.yml
+
+      - name: Wheel install smoke
+        shell: bash
+        run: |
+          python -m venv .release-smoke
+          .release-smoke/bin/python -m pip install --upgrade pip
+          .release-smoke/bin/python -m pip install dist/*.whl
+          test "$(.release-smoke/bin/codex-quality-gate --version)" = "$PACKAGE_VERSION"
+          .release-smoke/bin/codex-quality-gate doctor
+          .release-smoke/bin/codex-quality-gate check-catalogs
+
+      - name: Build release manifest
+        shell: bash
+        env:
+          RELEASE_ED25519_PRIVATE_KEY_B64: ${{ secrets.RELEASE_ED25519_PRIVATE_KEY_B64 }}
+        run: |
+          python -m codex_quality_gate.release_automation \
+            --dist dist \
+            --version "$PACKAGE_VERSION" \
+            --tag "$EXPECTED_TAG" \
+            --commit "$GITHUB_SHA" \
+            --repository "$GITHUB_REPOSITORY" \
+            --artifact-base-url "https://github.com/${GITHUB_REPOSITORY}/releases/download/${EXPECTED_TAG}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: codex-quality-gate-${{ env.PACKAGE_VERSION }}
+          path: |
+            dist/*.whl
+            dist/*.tar.gz
+            dist/rules.json
+            dist/semgrep.yml
+            dist/SHA256SUMS
+            dist/latest.json
+          if-no-files-found: error
+
+      - uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          prerelease: ${{ contains(github.ref_name, '-rc') }}
+          files: |
+            dist/*.whl
+            dist/*.tar.gz
+            dist/rules.json
+            dist/semgrep.yml
+            dist/SHA256SUMS
+            dist/latest.json

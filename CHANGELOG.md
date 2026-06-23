@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.0rc3
+
+Status: release candidate.
+
+- Adds an autonomous tag-driven release workflow that reruns the full quality,
+  security, frontend, and package gate before publishing release assets.
+- Generates wheel, sdist, rules bundle, Semgrep bundle, `SHA256SUMS`, and
+  `latest.json` release metadata from CI.
+- Signs artifacts and the update manifest when `RELEASE_ED25519_PRIVATE_KEY_B64`
+  is configured, and blocks stable releases without a signing key.
+- Keeps release candidates publishable as unsigned RC artifacts so the pipeline
+  can be rehearsed before stable signing is enabled.
+
 ## 0.1.0rc2
 
 Status: release candidate.

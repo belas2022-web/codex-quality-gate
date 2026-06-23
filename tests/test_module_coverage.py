@@ -6,6 +6,8 @@ import pkgutil
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 import codex_quality_gate
 from codex_quality_gate.chat_bridge.base import HttpTransport
 from codex_quality_gate.chat_bridge.discord import DiscordConnector
@@ -128,6 +130,10 @@ def test_imports_all_package_modules() -> None:
 def test_smoke_helpers_and_sources(tmp_path: Path, monkeypatch: Any) -> None:
     assert available_checks()
     assert get_env_name("MISSING_CODEX_QUALITY_GATE_ENV") is None
+    monkeypatch.setenv("CODEX_QUALITY_GATE_BLANK", " ")
+    assert get_env_name("CODEX_QUALITY_GATE_BLANK") is None
+    with pytest.raises(ValueError):
+        require_env_name("MISSING_CODEX_QUALITY_GATE_ENV")
     monkeypatch.setenv("CODEX_QUALITY_GATE_SAMPLE", "value")
     assert require_env_name("CODEX_QUALITY_GATE_SAMPLE") == "value"
     configure_logging()

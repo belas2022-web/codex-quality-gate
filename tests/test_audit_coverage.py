@@ -78,6 +78,33 @@ def test_orchestrator_missing_tool_ci_and_npm_branches(tmp_path: Path) -> None:
     assert ci_failed.status is CheckStatus.FAILED
 
 
+def test_git_diff_policy_skips_invalid_git_marker(tmp_path: Path) -> None:
+    (tmp_path / ".git").mkdir()
+    context = CheckContext(root=tmp_path, profile=ProjectProfile(tmp_path))
+
+    result = CheckOrchestrator()._git_diff_policy(context)
+
+    assert result.status is CheckStatus.SKIPPED
+    assert result.skipped_reason == "not a git working tree"
+    assert result.findings == []
+    assert result.stderr == ""
+
+
+def test_git_diff_policy_skips_broken_git_directory_without_diff_error(tmp_path: Path) -> None:
+    git_dir = tmp_path / ".git"
+    git_dir.mkdir()
+    (git_dir / "HEAD").write_text("ref: refs/heads/main\n", encoding="utf-8")
+    context = CheckContext(root=tmp_path, profile=ProjectProfile(tmp_path))
+
+    result = CheckOrchestrator()._git_diff_policy(context)
+
+    assert result.status is CheckStatus.SKIPPED
+    assert result.skipped_reason == "not a git working tree"
+    assert result.findings == []
+    assert result.command == ()
+    assert "git diff" not in result.stderr
+
+
 def test_policy_review_and_secret_file_branches() -> None:
     policy = RiskPolicy()
     decision = policy.validate_diff("+++ b/.github/workflows/quality.yml\n+name: quality\n")

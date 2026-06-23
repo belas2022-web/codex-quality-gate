@@ -245,6 +245,16 @@ class CheckOrchestrator:
     def _git_diff_policy(self, context: CheckContext) -> CheckResult:
         if not (context.root / ".git").exists():
             return skipped("git_diff_policy", "Git diff policy", "not a git repository")
+        working_tree = subprocess.run(
+            ("git", "rev-parse", "--is-inside-work-tree"),
+            cwd=context.root,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=context.timeout_seconds,
+        )
+        if working_tree.returncode != 0 or working_tree.stdout.strip().lower() != "true":
+            return skipped("git_diff_policy", "Git diff policy", "not a git working tree")
         started = time.perf_counter()
         completed = subprocess.run(
             ("git", "diff", "--no-ext-diff"),

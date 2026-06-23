@@ -16,6 +16,10 @@ def test_platform_detects_macos_arm64() -> None:
     assert normalized_platform("Darwin", "arm64") == "macos-arm64"
 
 
+def test_platform_uses_unknown_arch_fallback() -> None:
+    assert normalized_platform("Linux", "riscv64") == "linux-riscv64"
+
+
 def test_github_releases_endpoint() -> None:
     source = GitHubReleasesSource("owner/repo")
     assert source.repository == "owner/repo"

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 APP_NAME = "codex-quality-gate"
-VERSION = "0.1.0rc1"
+VERSION = "0.1.0rc2"
 DEFAULT_REGISTRY_DIRNAME = ".codex-quality-gate"
 DEFAULT_GITHUB_USER = "belas"
 DEFAULT_UPDATES_REPO = "codex-quality-gate-updates"

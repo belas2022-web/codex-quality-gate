@@ -1,8 +1,29 @@
 # Changelog
 
-## 0.1.0rc1
+## 0.1.0rc2
 
 Status: release candidate.
+
+- Supersedes `v0.1.0-rc1`, which was published but failed field validation on
+  external projects.
+- Fixed external project tool resolution so Semgrep is resolved from the target
+  project virtualenv or the runner environment instead of falling back to
+  `python -m semgrep` in target context.
+- Added regression coverage for Windows Semgrep resolution from the runner
+  environment.
+- Confirmed invalid or non-repository `.git` directories are skipped by
+  `git_diff_policy` instead of surfacing as `git diff` tool failures.
+- Added regression coverage for broken `.git` directory handling.
+
+## 0.1.0rc1
+
+Status: superseded release candidate.
+
+Known release-candidate issue:
+
+- Failed field validation on external projects because Semgrep could be invoked
+  as `python -m semgrep`, which exits with code 2 on newer Semgrep versions on
+  Windows.
 
 Passed:
 

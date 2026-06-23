@@ -1,6 +1,6 @@
 # Release Checklist
 
-## v0.1.0-rc1 Criteria
+## v0.1.0-rc2 Criteria
 
 Use a real remote repository for the final release-candidate rehearsal. A local
 bare origin is useful for git mechanics, but it does not validate hosted CI,
@@ -12,8 +12,11 @@ permissions, tag workflows, or release artifacts.
 4. Install Python and frontend dependencies.
 5. Run the full release gate from the clean clone.
 6. Confirm hosted CI is green.
-7. Tag `v0.1.0-rc1`.
+7. Tag `v0.1.0-rc2`.
 8. Build and sign RC artifacts.
+
+`v0.1.0-rc1` was published and CI-verified, but it is superseded by `v0.1.0-rc2`
+because field validation found a Semgrep resolver failure on external projects.
 
 ## Clean Clone Gate
 
@@ -71,8 +74,8 @@ On a temporary branch, confirm the policy reacts to risky diffs:
 
 The release update channel must publish signed metadata and artifacts:
 
-- `codex_quality_gate-0.1.0rc1-py3-none-any.whl`
-- `codex_quality_gate-0.1.0rc1.tar.gz`
+- `codex_quality_gate-0.1.0rc2-py3-none-any.whl`
+- `codex_quality_gate-0.1.0rc2.tar.gz`
 - rules JSON bundle
 - Semgrep bundle
 - SHA-256 hashes
@@ -89,7 +92,7 @@ and cached, never executed automatically.
 Do not cut `v0.1.0` stable until:
 
 - Real remote CI is green.
-- `v0.1.0-rc1` installs from artifact.
+- `v0.1.0-rc2` installs from artifact.
 - Update manifest and signatures are verified.
 - The gate has been tested on 2-3 real projects.
 - There are no P1 or P2 findings.

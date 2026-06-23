@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "codex-quality-gate"
-version = "0.1.0rc3"
+version = "0.1.0"
 description = "Autonomous multi-project quality gate for AI and Codex-generated code."
 readme = "README.md"
 requires-python = ">=3.11"

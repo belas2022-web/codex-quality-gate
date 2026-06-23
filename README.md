@@ -11,7 +11,7 @@ The generated defaults replace the original placeholders:
 - GitHub owner: `belas`
 - Rules updates repository: `codex-quality-gate-updates`
 - App releases repository: `codex-quality-gate-releases`
-- Ed25519 public key: development placeholder only, replace before production
+- Ed25519 public key: development placeholder only, replace before stable release
 - Token environment names: `SLACK_APP_TOKEN`, `TELEGRAM_BOT_TOKEN`,
   `DISCORD_BOT_TOKEN`, `TEAMS_CLIENT_ID`, `OPENAI_API_KEY`
 
@@ -45,6 +45,7 @@ cd frontend
 npm ci
 npm run lint
 npm run typecheck
+npm run test
 npm run build
 npm audit --json
 cd ..
@@ -131,6 +132,8 @@ codex-quality-gate audit tail
 
 Updates must be HTTPS, domain-allowlisted, SHA-256 checked, and Ed25519 signed.
 Downloaded app artifacts are verified and cached, never executed automatically.
+Stable release metadata requires a real Ed25519 public key in the package and a
+matching `RELEASE_ED25519_PRIVATE_KEY_B64` secret in GitHub Actions.
 Chat connectors never scrape UIs and require explicit read/write allowlists.
 Secrets are redacted from audit records and outgoing chat reports.
 
@@ -173,6 +176,5 @@ codex-quality-gate check . --sarif > reports.sarif
 
 The project ships production-safe connector skeletons and local scanning logic.
 External services are only contacted when a connector/source is enabled and called.
-The default signing key is a development placeholder and must be replaced before use.
-The frontend does not yet ship an `npm test` script; release gates currently rely
-on frontend lint, typecheck, build, and audit.
+The default signing key is a development placeholder and must be replaced before
+stable release.

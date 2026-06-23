@@ -60,6 +60,8 @@ Known warnings:
 
 ## 0.1.0
 
+Status: stable release target.
+
 - Initial release.
 - Multi-project registry.
 - Project profiler.
@@ -77,3 +79,9 @@ Known warnings:
 - Audit log.
 - CLI.
 - Tests and CI.
+- Adds frontend unit tests to the quality and release gates.
+- Strengthens release automation, bootstrapper, updater, workflow, and command
+  runner coverage.
+- Blocks stable metadata generation when the signing secret is absent, the
+  packaged public key is still the development placeholder, or the signing key
+  does not match the packaged public key.

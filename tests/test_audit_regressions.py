@@ -11,6 +11,7 @@ from typer.testing import CliRunner
 from codex_quality_gate.chat_bridge.router import parse_chat_command
 from codex_quality_gate.checks.orchestrator import CheckOrchestrator
 from codex_quality_gate.cli import app
+from codex_quality_gate.constants import DEFAULT_ED25519_PUBLIC_KEY_BASE64, VERSION
 from codex_quality_gate.core.errors import PolicyViolationError, SecurityVerificationError
 from codex_quality_gate.policies.autofix_policy import AutofixPolicy
 
@@ -48,6 +49,10 @@ def _rules_payload() -> dict[str, object]:
     return json.loads(Path("src/codex_quality_gate/data/default_rules.json").read_text())
 
 
+def _config_payload() -> dict[str, object]:
+    return json.loads(Path("src/codex_quality_gate/data/default_config.json").read_text())
+
+
 def test_default_rules_catalog_is_real_and_complete() -> None:
     payload = _rules_payload()
     rules = payload["rules"]
@@ -61,6 +66,15 @@ def test_default_rules_catalog_is_real_and_complete() -> None:
         assert rule["fix_strategy"] in {"autofix", "manual", "review_required", "blocked"}
         assert rule["severity"] in {"critical", "error", "warning", "info"}
         re.compile(rule["regex"])
+
+
+def test_default_config_matches_package_release_constants() -> None:
+    payload = _config_payload()
+    app_payload = payload["app"]
+    updates_payload = payload["updates"]
+
+    assert app_payload["version"] == VERSION
+    assert updates_payload["ed25519_public_key_base64"] == DEFAULT_ED25519_PUBLIC_KEY_BASE64
 
 
 def test_default_semgrep_catalog_is_not_empty() -> None:

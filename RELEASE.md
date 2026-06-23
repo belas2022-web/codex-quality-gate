@@ -1,26 +1,28 @@
 # Release Checklist
 
-## v0.1.0-rc3 Criteria
+## v0.1.0 Stable Criteria
 
-Use the hosted release workflow for the final release-candidate rehearsal. A
-local build is useful for mechanics, but it does not validate hosted CI
+Use the hosted release workflow for the stable release. A local build is useful
+for mechanics, but it does not validate hosted CI
 permissions, tag workflows, uploaded artifacts, or GitHub Release publishing.
 
 1. Commit the release-prep changes.
-2. Push to the real remote.
-3. Clone the real remote into an ASCII-only path.
-4. Install Python and frontend dependencies.
-5. Run the full release gate from the clean clone.
-6. Confirm hosted CI is green.
-7. Tag `v0.1.0-rc3`.
-8. Confirm the release workflow uploads wheel, sdist, rules, Semgrep bundle,
+2. Replace the development Ed25519 public key in code and generated defaults.
+3. Add a matching GitHub Actions secret named `RELEASE_ED25519_PRIVATE_KEY_B64`.
+4. Push to the real remote.
+5. Clone the real remote into an ASCII-only path.
+6. Install Python and frontend dependencies.
+7. Run the full release gate from the clean clone.
+8. Confirm hosted CI is green.
+9. Tag `v0.1.0`.
+10. Confirm the release workflow uploads wheel, sdist, rules, Semgrep bundle,
    `SHA256SUMS`, and `latest.json`.
-9. Confirm GitHub Release assets match the workflow artifacts.
+11. Confirm GitHub Release assets match the workflow artifacts.
 
 `v0.1.0-rc1` was published and CI-verified, but it is superseded by `v0.1.0-rc2`
 because field validation found a Semgrep resolver failure on external projects.
 `v0.1.0-rc3` keeps the `v0.1.0-rc2` fixes and adds autonomous release
-publishing.
+publishing. Stable `v0.1.0` keeps those fixes and requires signed metadata.
 
 ## Clean Clone Gate
 
@@ -35,6 +37,7 @@ cd frontend
 npm ci
 npm run lint
 npm run typecheck
+npm run test
 npm run build
 npm audit --json
 cd ..
@@ -78,8 +81,8 @@ On a temporary branch, confirm the policy reacts to risky diffs:
 
 The release update channel must publish metadata and artifacts:
 
-- `codex_quality_gate-0.1.0rc3-py3-none-any.whl`
-- `codex_quality_gate-0.1.0rc3.tar.gz`
+- `codex_quality_gate-0.1.0-py3-none-any.whl`
+- `codex_quality_gate-0.1.0.tar.gz`
 - rules JSON bundle
 - Semgrep bundle
 - SHA-256 hashes
@@ -89,7 +92,9 @@ The release update channel must publish metadata and artifacts:
 
 Release candidates may be published as `unsigned-rc` while the release workflow
 is being rehearsed. Stable releases must set `RELEASE_ED25519_PRIVATE_KEY_B64`;
-the workflow blocks stable metadata generation when the signing key is absent.
+the workflow blocks stable metadata generation when the signing key is absent,
+when the packaged public key is still the development placeholder, or when the
+private key does not match the packaged public key.
 
 When signatures are present, verify that manifest signatures, rules signatures,
 rules hashes, artifact signatures, and artifact hashes all match. Downloaded

@@ -118,7 +118,7 @@ def test_build_release_manifest_rejects_tag_version_mismatch(tmp_path: Path) -> 
 
 def test_build_release_manifest_requires_signature_for_stable(tmp_path: Path) -> None:
     dist = tmp_path / "dist"
-    _write_dist(dist)
+    _write_dist_for_version(dist, "0.1.0")
 
     with pytest.raises(ValueError, match="Stable releases require"):
         build_release_manifest(
@@ -127,6 +127,40 @@ def test_build_release_manifest_requires_signature_for_stable(tmp_path: Path) ->
             tag="v0.1.0",
             commit="abc123",
             repository="belas2022-web/codex-quality-gate",
+        )
+
+
+def test_build_release_manifest_requires_real_public_key_for_stable(tmp_path: Path) -> None:
+    dist = tmp_path / "dist"
+    _write_dist_for_version(dist, "0.1.0")
+    private_key, _public_key = _private_key_pair()
+
+    with pytest.raises(ValueError, match="real Ed25519 public key"):
+        build_release_manifest(
+            dist,
+            version="0.1.0",
+            tag="v0.1.0",
+            commit="abc123",
+            repository="belas2022-web/codex-quality-gate",
+            private_key_base64=private_key,
+        )
+
+
+def test_build_release_manifest_rejects_mismatched_stable_public_key(tmp_path: Path) -> None:
+    dist = tmp_path / "dist"
+    _write_dist_for_version(dist, "0.1.0")
+    private_key, _public_key = _private_key_pair()
+    _other_private_key, other_public_key = _private_key_pair()
+
+    with pytest.raises(ValueError, match="does not match configured public key"):
+        build_release_manifest(
+            dist,
+            version="0.1.0",
+            tag="v0.1.0",
+            commit="abc123",
+            repository="belas2022-web/codex-quality-gate",
+            public_key_base64=other_public_key,
+            private_key_base64=private_key,
         )
 
 
@@ -187,6 +221,10 @@ def test_release_automation_main_reads_private_key_env(
     _write_dist_for_version(dist, "0.1.0")
     private_key, public_key = _private_key_pair()
     monkeypatch.setenv("RELEASE_ED25519_PRIVATE_KEY_B64", private_key)
+    monkeypatch.setattr(
+        "codex_quality_gate.release_automation.DEFAULT_ED25519_PUBLIC_KEY_BASE64",
+        public_key,
+    )
 
     exit_code = main(
         [

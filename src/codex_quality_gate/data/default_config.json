@@ -2,7 +2,7 @@
   "app": {
     "default_mode": "observe",
     "name": "codex-quality-gate",
-    "version": "0.1.0rc3"
+    "version": "0.1.0"
   },
   "bootstrap": {
     "allow_admin_install": false,

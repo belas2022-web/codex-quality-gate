@@ -8,12 +8,19 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from packaging.version import Version
 
+from codex_quality_gate.constants import DEFAULT_ED25519_PUBLIC_KEY_BASE64
 from codex_quality_gate.updates.filesystem import atomic_write
 from codex_quality_gate.updates.hashing import sha256_bytes
 from codex_quality_gate.updates.models import UpdateManifest
+
+_PLACEHOLDER_ED25519_PUBLIC_KEYS = {
+    "",
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+}
 
 
 @dataclass(frozen=True)
@@ -41,6 +48,7 @@ def build_release_manifest(
     commit: str,
     repository: str,
     artifact_base_url: str = "",
+    public_key_base64: str = "",
     private_key_base64: str = "",
     created_at: datetime | None = None,
     expires_at: datetime | None = None,
@@ -52,6 +60,11 @@ def build_release_manifest(
     private_key = _load_private_key(private_key_base64) if private_key_base64 else None
     if Version(version).pre is None and private_key is None:
         raise ValueError("Stable releases require RELEASE_ED25519_PRIVATE_KEY_B64")
+    if Version(version).pre is None and private_key is not None:
+        _validate_stable_signing_key(
+            public_key_base64 or DEFAULT_ED25519_PUBLIC_KEY_BASE64,
+            private_key,
+        )
 
     dist_dir = dist_dir.resolve()
     wheel = _single_artifact(dist_dir, f"*{version}*.whl")
@@ -148,6 +161,22 @@ def _write_sha256sums(dist_dir: Path, artifacts: list[ReleaseArtifact]) -> None:
 def _load_private_key(private_key_base64: str) -> Ed25519PrivateKey:
     private_bytes = base64.b64decode(private_key_base64)
     return Ed25519PrivateKey.from_private_bytes(private_bytes)
+
+
+def _validate_stable_signing_key(
+    public_key_base64: str,
+    private_key: Ed25519PrivateKey,
+) -> None:
+    if public_key_base64 in _PLACEHOLDER_ED25519_PUBLIC_KEYS:
+        raise ValueError("Stable releases require a real Ed25519 public key")
+
+    configured_public_key = base64.b64decode(public_key_base64)
+    signing_public_key = private_key.public_key().public_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PublicFormat.Raw,
+    )
+    if configured_public_key != signing_public_key:
+        raise ValueError("Stable release private key does not match configured public key")
 
 
 def _sign(payload: bytes, private_key: Ed25519PrivateKey) -> str:

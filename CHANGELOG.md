@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.1
+
+Status: stable patch release.
+
+- Publishes the dashboard fixes after `v0.1.0`: authenticated dashboard API
+  requests, operational dashboard actions, responsive table overflow fixes,
+  project health statuses, and favicon coverage.
+- Publishes the corrected stable Ed25519 public key that matches
+  `RELEASE_ED25519_PRIVATE_KEY_B64` in GitHub Actions.
+
 ## 0.1.0
 
 Status: stable release.

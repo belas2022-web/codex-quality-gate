@@ -10,14 +10,18 @@
     "@eslint/js": "^10.0.1",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
+    "electron": "^42.5.0",
     "eslint": "^10.5.0",
     "globals": "^17.7.0",
     "typescript-eslint": "^8.62.0"
   },
   "name": "codex-quality-gate-dashboard",
+  "main": "electron/main.cjs",
   "private": true,
   "scripts": {
     "build": "tsc -b && vite build",
+    "desktop": "electron electron/main.cjs",
+    "desktop:dev": "electron electron/main.cjs --dev",
     "dev": "vite --host 127.0.0.1",
     "lint": "eslint .",
     "test": "node --test test/*.test.mjs",

@@ -1,5 +1,13 @@
-const API_BASE = '/api';
+const DEFAULT_API_BASE = '/api';
 const DASHBOARD_TOKEN_STORAGE_KEY = 'codex_quality_gate.dashboard_token';
+
+declare global {
+  interface Window {
+    __CQG_DESKTOP__?: {
+      apiBaseUrl?: string;
+    };
+  }
+}
 
 export type DashboardSummary = {
   projects: number;
@@ -152,7 +160,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
-  const response = await fetch(`${API_BASE}${path}`, {
+  const response = await fetch(`${getApiBase()}${path}`, {
     ...init,
     headers,
   });
@@ -162,8 +170,19 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+function getApiBase(): string {
+  const desktopApiBase = browserDesktopConfig()?.apiBaseUrl?.trim();
+  if (!desktopApiBase) return DEFAULT_API_BASE;
+  return desktopApiBase.endsWith('/') ? desktopApiBase.slice(0, -1) : desktopApiBase;
+}
+
 function readStoredDashboardToken(): string {
   return browserSessionStorage()?.getItem(DASHBOARD_TOKEN_STORAGE_KEY) ?? '';
+}
+
+function browserDesktopConfig(): Window['__CQG_DESKTOP__'] | null {
+  if (typeof window === 'undefined') return null;
+  return window.__CQG_DESKTOP__ ?? null;
 }
 
 function browserSessionStorage(): Storage | null {

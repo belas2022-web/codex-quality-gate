@@ -29,6 +29,33 @@ python -m venv .venv
 
 Linux/macOS shells use `.venv/bin/python` instead of `.venv\Scripts\python`.
 
+## Desktop Dashboard
+
+The dashboard can run as a local Electron desktop application. The Electron
+shell starts the FastAPI dashboard backend on `127.0.0.1`, waits for
+`/api/health`, and opens the built React dashboard with the direct API URL.
+
+```powershell
+cd frontend
+npm ci
+npm run build
+npm run desktop
+```
+
+For development, run Vite in one terminal and Electron in another:
+
+```powershell
+cd frontend
+npm run dev
+npm run desktop:dev
+```
+
+Optional environment overrides:
+
+- `CQG_DESKTOP_BACKEND_PORT`: backend port, default `8765`.
+- `CQG_DESKTOP_PYTHON`: Python executable, default `python` on Windows and
+  `python3` elsewhere.
+
 ## Release Rehearsal
 
 Before tagging a release candidate, run the full gate from a clean clone in an

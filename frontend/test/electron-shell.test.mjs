@@ -6,6 +6,7 @@ import { URL } from 'node:url';
 const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 const mainPath = new URL('../electron/main.cjs', import.meta.url);
 const preloadPath = new URL('../electron/preload.cjs', import.meta.url);
+const viteConfigPath = new URL('../vite.config.ts', import.meta.url);
 
 test('frontend exposes Electron desktop entrypoints', () => {
   assert.equal(packageJson.main, 'electron/main.cjs');
@@ -57,4 +58,10 @@ test('Electron renderer is isolated and receives only the dashboard API base URL
   assert.match(preloadSource, /requestJson/);
   assert.match(preloadSource, /ipcRenderer\.invoke\('cqg-api-request'/);
   assert.doesNotMatch(preloadSource, /apiBaseUrl/);
+});
+
+test('Vite emits file-relative assets for the packaged Electron renderer', () => {
+  const viteConfigSource = readFileSync(viteConfigPath, 'utf8');
+
+  assert.match(viteConfigSource, /base:\s*['"]\.\/['"]/);
 });

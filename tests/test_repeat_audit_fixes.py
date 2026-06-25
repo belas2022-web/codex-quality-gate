@@ -207,7 +207,7 @@ def test_updater_rejects_lock_path_traversal(tmp_path: Path) -> None:
         updater.apply_rules(manifest, "rules.json", "../update.lock")
 
 
-def test_dashboard_command_calls_uvicorn_run(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_dashboard_api_command_calls_uvicorn_run(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[dict[str, object]] = []
 
     def fake_run(app: object, *, host: str, port: int) -> None:
@@ -215,7 +215,10 @@ def test_dashboard_command_calls_uvicorn_run(monkeypatch: pytest.MonkeyPatch) ->
 
     monkeypatch.setattr(cli_module, "uvicorn", SimpleNamespace(run=fake_run), raising=False)
 
-    result = runner.invoke(cli_module.app, ["dashboard"])
+    help_result = runner.invoke(cli_module.app, ["--help"])
+    assert help_result.exit_code == 0
+    assert "dashboard " not in help_result.output
+    result = runner.invoke(cli_module.app, ["dashboard-api"])
 
     assert result.exit_code == 0
     assert calls and calls[0]["host"] == "127.0.0.1" and calls[0]["port"] == 8765

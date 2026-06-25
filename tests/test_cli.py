@@ -87,7 +87,10 @@ def test_cli_update_commands_validate_catalogs() -> None:
 
 
 def test_cli_dashboard_sources_chat_and_audit_commands() -> None:
-    assert runner.invoke(app, ["dashboard", "--check-config"]).exit_code == 0
+    help_result = runner.invoke(app, ["--help"])
+    assert help_result.exit_code == 0
+    assert "dashboard " not in help_result.output
+    assert runner.invoke(app, ["dashboard-api", "--check-config"]).exit_code == 0
     assert runner.invoke(app, ["sources", "sync"]).exit_code == 0
     assert runner.invoke(app, ["chat", "test", "slack"]).exit_code == 0
     send_report = runner.invoke(app, ["chat", "send-report", "demo", "--connector", "slack"])

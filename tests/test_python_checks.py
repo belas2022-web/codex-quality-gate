@@ -19,3 +19,13 @@ def test_python_syntax_compile_reports_error(tmp_path: Path) -> None:
     source.write_text("x =\n", encoding="utf-8")
     result = CheckOrchestrator().run(tmp_path, profile_name="minimal")
     assert any(finding.rule_id == "syntax_compile" for finding in result.findings)
+
+
+def test_python_syntax_compile_does_not_write_source_pycache(tmp_path: Path) -> None:
+    source = tmp_path / "good.py"
+    source.write_text("x = 1\n", encoding="utf-8")
+
+    result = CheckOrchestrator().run(tmp_path, profile_name="minimal")
+
+    assert result.exit_code() == 0
+    assert not (tmp_path / "__pycache__").exists()

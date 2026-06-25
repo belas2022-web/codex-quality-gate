@@ -37,6 +37,9 @@ dev = [
   "types-requests>=2.32",
   "build>=1.2",
 ]
+desktop = [
+  "pyinstaller>=6.11",
+]
 
 [project.scripts]
 codex-quality-gate = "codex_quality_gate.cli:app"

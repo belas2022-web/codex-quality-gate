@@ -7,6 +7,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -180,21 +181,23 @@ class CheckOrchestrator:
     def _syntax_compile(self, _context: CheckContext, sources: list[SourceFile]) -> CheckResult:
         started = time.perf_counter()
         findings: list[Finding] = []
-        for source in sources:
-            if source.path.suffix != ".py":
-                continue
-            try:
-                py_compile.compile(str(source.path), doraise=True)
-            except py_compile.PyCompileError as exc:
-                findings.append(
-                    CheckFinding(
-                        rule_id="syntax_compile",
-                        message=str(exc.msg),
-                        path=str(source.path),
-                        severity=CheckSeverity.ERROR,
-                        category="syntax",
-                    ).to_finding()
-                )
+        with tempfile.TemporaryDirectory(prefix="cqg-pycompile-") as bytecode_dir:
+            for index, source in enumerate(sources):
+                if source.path.suffix != ".py":
+                    continue
+                bytecode_path = Path(bytecode_dir) / f"{index}.pyc"
+                try:
+                    py_compile.compile(str(source.path), cfile=str(bytecode_path), doraise=True)
+                except py_compile.PyCompileError as exc:
+                    findings.append(
+                        CheckFinding(
+                            rule_id="syntax_compile",
+                            message=str(exc.msg),
+                            path=str(source.path),
+                            severity=CheckSeverity.ERROR,
+                            category="syntax",
+                        ).to_finding()
+                    )
         status = CheckStatus.FAILED if findings else CheckStatus.PASSED
         return CheckResult(
             check_id="syntax_compile",

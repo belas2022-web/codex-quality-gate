@@ -1,10 +1,21 @@
-const DEFAULT_API_BASE = '/api';
 const DASHBOARD_TOKEN_STORAGE_KEY = 'codex_quality_gate.dashboard_token';
+
+type DesktopRequestInit = {
+  method?: string;
+  headers?: Record<string, string>;
+  body?: string;
+};
+
+type DesktopApiResponse<T> = {
+  ok: boolean;
+  status: number;
+  payload: T;
+};
 
 declare global {
   interface Window {
     __CQG_DESKTOP__?: {
-      apiBaseUrl?: string;
+      requestJson?: <T>(path: string, init?: DesktopRequestInit) => Promise<DesktopApiResponse<T>>;
     };
   }
 }
@@ -152,6 +163,10 @@ export async function scanProject(projectName: string): Promise<{ project: strin
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const bridge = desktopBridge();
+  if (!bridge?.requestJson) {
+    throw new DashboardApiError(path, 0);
+  }
   const token = getDashboardToken();
   const headers: Record<string, string> = {
     Accept: 'application/json',
@@ -160,27 +175,22 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
-  const response = await fetch(`${getApiBase()}${path}`, {
-    ...init,
+  const response = await bridge.requestJson<T>(path, {
+    method: init.method,
     headers,
+    body: typeof init.body === 'string' ? init.body : undefined,
   });
   if (!response.ok) {
     throw new DashboardApiError(path, response.status);
   }
-  return response.json() as Promise<T>;
-}
-
-function getApiBase(): string {
-  const desktopApiBase = browserDesktopConfig()?.apiBaseUrl?.trim();
-  if (!desktopApiBase) return DEFAULT_API_BASE;
-  return desktopApiBase.endsWith('/') ? desktopApiBase.slice(0, -1) : desktopApiBase;
+  return response.payload as T;
 }
 
 function readStoredDashboardToken(): string {
   return browserSessionStorage()?.getItem(DASHBOARD_TOKEN_STORAGE_KEY) ?? '';
 }
 
-function browserDesktopConfig(): Window['__CQG_DESKTOP__'] | null {
+function desktopBridge(): Window['__CQG_DESKTOP__'] | null {
   if (typeof window === 'undefined') return null;
   return window.__CQG_DESKTOP__ ?? null;
 }

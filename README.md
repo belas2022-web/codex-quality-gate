@@ -33,7 +33,8 @@ Linux/macOS shells use `.venv/bin/python` instead of `.venv\Scripts\python`.
 
 The dashboard can run as a local Electron desktop application. The Electron
 shell starts the FastAPI dashboard backend on `127.0.0.1`, waits for
-`/api/health`, and opens the built React dashboard with the direct API URL.
+`/api/health`, and opens the built React dashboard through an isolated preload
+IPC bridge. The browser/Vite dashboard entrypoint is intentionally not exposed.
 
 ```powershell
 cd frontend
@@ -42,13 +43,17 @@ npm run build
 npm run desktop
 ```
 
-For development, run Vite in one terminal and Electron in another:
+To package the Windows desktop app, install the optional desktop tooling and run
+the desktop builder:
 
 ```powershell
-cd frontend
-npm run dev
-npm run desktop:dev
+python -m pip install -e ".[desktop]"
+python tools\build_desktop.py
 ```
+
+The builder creates a bundled dashboard API executable in
+`frontend\desktop-backend\` and a portable Electron artifact in
+`frontend\dist-desktop\`.
 
 Optional environment overrides:
 
@@ -134,13 +139,15 @@ codex-quality-gate profile . --json
 codex-quality-gate bootstrap . --dry-run
 codex-quality-gate check . --json
 codex-quality-gate check . --sarif
-codex-quality-gate dashboard --host 127.0.0.1 --port 8765
 codex-quality-gate daemon --mode observe
 codex-quality-gate update-rules
 codex-quality-gate sources list
 codex-quality-gate chat list
 codex-quality-gate audit tail
 ```
+
+The dashboard API command is hidden and reserved for the Electron shell. Use the
+desktop app for dashboard access.
 
 ## Architecture
 
@@ -152,7 +159,7 @@ codex-quality-gate audit tail
 - `updates`: HTTPS allowlist, SHA-256, Ed25519 signatures, backup, rollback, lock.
 - `projects`: multi-project registry, per-project config, and scan locks.
 - `database`: SQLite persistence for runs, findings, updates, audit, policies.
-- `dashboard`: FastAPI dashboard API, localhost by default.
+- `dashboard`: FastAPI dashboard API reserved for the Electron desktop shell.
 - `chat_bridge`: official API/export-only connectors with permissions.
 - `policies`: blocks dangerous autofix and Codex changes.
 - `audit`: JSONL audit events with secret redaction.
@@ -195,7 +202,7 @@ codex-quality-gate check . --sarif > reports.sarif
 ## Troubleshooting
 
 - If `python -m codex_quality_gate` is not found, install editable with `pip install -e .`.
-- If dashboard is bound outside localhost, configure auth first.
+- If the desktop dashboard API is bound outside localhost, configure auth first.
 - If an update is rejected, check domain allowlist, SHA-256, signature, and version.
 - If a chat report is blocked, check connector permissions and write-back settings.
 - On Windows paths with non-ASCII characters, set `PYTHONUTF8=1` if a third-party

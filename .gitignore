@@ -11,6 +11,8 @@ build/
 *.egg-info/
 node_modules/
 frontend/dist/
+frontend/desktop-backend/
+frontend/dist-desktop/
 *.tsbuildinfo
 .codex-quality-gate/
 .codex/

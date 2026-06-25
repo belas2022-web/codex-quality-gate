@@ -120,12 +120,11 @@ def check_catalogs() -> None:
         raise typer.Exit(POLICY_EXIT) from None
 
 
-@app.command()
-def dashboard(
-    host: Annotated[str, typer.Option("--host")] = "127.0.0.1",
-    port: Annotated[int, typer.Option("--port")] = 8765,
-    check_config_only: Annotated[bool, typer.Option("--check-config")] = False,
-    auth_token: Annotated[str | None, typer.Option("--auth-token")] = None,
+def run_dashboard_api(
+    host: str = "127.0.0.1",
+    port: int = 8765,
+    check_config_only: bool = False,
+    auth_token: str | None = None,
 ) -> None:
     token = auth_token or os.getenv("CODEX_QUALITY_GATE_DASHBOARD_TOKEN")
     cfg = DashboardConfig(host=host, port=port, auth_token=token)
@@ -141,6 +140,16 @@ def dashboard(
         typer.secho(str(exc), err=True)
         raise typer.Exit(CONFIG_EXIT) from None
     uvicorn.run(dashboard_app, host=host, port=port)
+
+
+@app.command("dashboard-api", hidden=True)
+def dashboard_api(
+    host: Annotated[str, typer.Option("--host")] = "127.0.0.1",
+    port: Annotated[int, typer.Option("--port")] = 8765,
+    check_config_only: Annotated[bool, typer.Option("--check-config")] = False,
+    auth_token: Annotated[str | None, typer.Option("--auth-token")] = None,
+) -> None:
+    run_dashboard_api(host, port, check_config_only, auth_token)
 
 
 @app.command()

@@ -44,9 +44,9 @@ test('navigation entries have render coverage', () => {
 });
 
 test('api client supports the local api contract with dashboard auth', () => {
-  assert.match(clientSource, /const DEFAULT_API_BASE = '\/api';/);
   assert.match(clientSource, /__CQG_DESKTOP__/);
-  assert.match(clientSource, /function getApiBase/);
+  assert.match(clientSource, /requestJson/);
+  assert.match(clientSource, /function desktopBridge/);
   assert.match(clientSource, /DASHBOARD_TOKEN_STORAGE_KEY/);
   assert.match(clientSource, /Authorization/);
   assert.match(clientSource, /Bearer \$\{token\}/);
@@ -54,8 +54,9 @@ test('api client supports the local api contract with dashboard auth', () => {
   assert.match(clientSource, /export function clearDashboardToken/);
   assert.match(clientSource, /export async function scanProject/);
   assert.match(clientSource, /if \(!response\.ok\)/);
-  assert.match(clientSource, /fetch\(`\$\{getApiBase\(\)\}\$\{path\}`/);
-  assert.match(clientSource, /return response\.json\(\) as Promise<T>;/);
+  assert.match(clientSource, /return response\.payload as T;/);
+  assert.doesNotMatch(clientSource, /fetch\(/);
+  assert.doesNotMatch(clientSource, /DEFAULT_API_BASE/);
 });
 
 test('dashboard wires visible actions to behavior instead of inert buttons', () => {

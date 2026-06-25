@@ -1,21 +1,19 @@
 const { spawn } = require('node:child_process');
 const http = require('node:http');
 const path = require('node:path');
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 
 const BACKEND_HOST = '127.0.0.1';
 const DEFAULT_BACKEND_PORT = 8765;
 const HEALTH_PATH = '/api/health';
-const VITE_DEV_URL = 'http://127.0.0.1:5173';
 const BACKEND_READY_TIMEOUT_MS = 15_000;
 const BACKEND_READY_INTERVAL_MS = 250;
+const API_IPC_CHANNEL = 'cqg-api-request';
+const API_PATH_PREFIX = '/api';
 
 let backendProcess = null;
 let mainWindow = null;
-
-function isDevMode() {
-  return process.argv.includes('--dev') || process.env.CQG_DESKTOP_DEV === '1';
-}
+let apiBridgePort = null;
 
 function backendPort() {
   const rawPort = process.env.CQG_DESKTOP_BACKEND_PORT;
@@ -26,16 +24,32 @@ function backendPort() {
   return port;
 }
 
-function desktopApiBaseUrl(port) {
-  return `http://${BACKEND_HOST}:${port}/api`;
-}
-
 function pythonCommand() {
   return process.env.CQG_DESKTOP_PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
 }
 
-function backendArgs(port) {
-  return ['-m', 'codex_quality_gate', 'dashboard', '--host', BACKEND_HOST, '--port', String(port)];
+function packagedBackendPath() {
+  if (!app.isPackaged) {
+    return null;
+  }
+  const executableName = process.platform === 'win32' ? 'cqg-dashboard-api.exe' : 'cqg-dashboard-api';
+  return path.join(process.resourcesPath, 'desktop-backend', executableName);
+}
+
+function backendCommand(port) {
+  const packagedBackend = packagedBackendPath();
+  if (packagedBackend) {
+    return {
+      command: packagedBackend,
+      args: ['--host', BACKEND_HOST, '--port', String(port)],
+      cwd: path.dirname(packagedBackend),
+    };
+  }
+  return {
+    command: pythonCommand(),
+    args: ['-m', 'codex_quality_gate', 'dashboard-api', '--host', BACKEND_HOST, '--port', String(port)],
+    cwd: path.resolve(__dirname, '..', '..'),
+  };
 }
 
 function startBackend(port) {
@@ -43,8 +57,9 @@ function startBackend(port) {
     return null;
   }
 
-  const child = spawn(pythonCommand(), backendArgs(port), {
-    cwd: path.resolve(__dirname, '..', '..'),
+  const backend = backendCommand(port);
+  const child = spawn(backend.command, backend.args, {
+    cwd: backend.cwd,
     env: {
       ...process.env,
       PYTHONUTF8: '1',
@@ -115,7 +130,98 @@ async function ensureBackend(port) {
   await waitForBackend(port);
 }
 
-async function createWindow(port) {
+function safeRendererPath(value) {
+  if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//')) {
+    throw new Error('Invalid dashboard API path');
+  }
+  if (value.includes('\r') || value.includes('\n')) {
+    throw new Error('Invalid dashboard API path');
+  }
+  return `${API_PATH_PREFIX}${value}`;
+}
+
+function safeRendererMethod(value) {
+  const method = typeof value === 'string' && value ? value.toUpperCase() : 'GET';
+  if (!['GET', 'POST'].includes(method)) {
+    throw new Error('Unsupported dashboard API method');
+  }
+  return method;
+}
+
+function safeRendererHeaders(headers) {
+  const safeHeaders = { Accept: 'application/json' };
+  if (!headers || typeof headers !== 'object') {
+    return safeHeaders;
+  }
+  for (const [key, value] of Object.entries(headers)) {
+    if (typeof value !== 'string') {
+      continue;
+    }
+    const normalized = key.toLowerCase();
+    if (normalized === 'accept' || normalized === 'authorization' || normalized === 'content-type') {
+      safeHeaders[key] = value;
+    }
+  }
+  return safeHeaders;
+}
+
+function requestBackendJson(port, rendererPath, init = {}) {
+  return new Promise((resolve, reject) => {
+    const requestBody = typeof init.body === 'string' ? init.body : undefined;
+    const request = http.request(
+      {
+        host: BACKEND_HOST,
+        port,
+        path: safeRendererPath(rendererPath),
+        method: safeRendererMethod(init.method),
+        headers: safeRendererHeaders(init.headers),
+        timeout: 15_000,
+      },
+      (response) => {
+        const chunks = [];
+        response.on('data', (chunk) => {
+          chunks.push(chunk);
+        });
+        response.on('end', () => {
+          const text = Buffer.concat(chunks).toString('utf8');
+          let payload;
+          try {
+            payload = text ? JSON.parse(text) : null;
+          } catch (error) {
+            reject(error);
+            return;
+          }
+          resolve({
+            ok: Boolean(response.statusCode && response.statusCode >= 200 && response.statusCode < 300),
+            status: response.statusCode || 0,
+            payload,
+          });
+        });
+      },
+    );
+
+    request.on('timeout', () => {
+      request.destroy(new Error('Dashboard API request timed out'));
+    });
+    request.on('error', reject);
+    if (requestBody) {
+      request.write(requestBody);
+    }
+    request.end();
+  });
+}
+
+function registerApiBridge(port) {
+  if (apiBridgePort !== null) {
+    ipcMain.removeHandler(API_IPC_CHANNEL);
+  }
+  ipcMain.handle(API_IPC_CHANNEL, (_event, payload) => {
+    return requestBackendJson(port, payload?.path, payload?.init || {});
+  });
+  apiBridgePort = port;
+}
+
+async function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1440,
     height: 920,
@@ -128,7 +234,6 @@ async function createWindow(port) {
       contextIsolation: true,
       sandbox: true,
       nodeIntegration: false,
-      additionalArguments: [`--cqg-api-base=${desktopApiBaseUrl(port)}`],
     },
   });
 
@@ -136,10 +241,6 @@ async function createWindow(port) {
     mainWindow = null;
   });
 
-  if (isDevMode()) {
-    await mainWindow.loadURL(VITE_DEV_URL);
-    return;
-  }
   await mainWindow.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
 }
 
@@ -149,10 +250,11 @@ app
     app.setName('codex-quality-gate');
     const port = backendPort();
     await ensureBackend(port);
-    await createWindow(port);
+    registerApiBridge(port);
+    await createWindow();
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {
-        void createWindow(port);
+        void createWindow();
       }
     });
   })
@@ -170,10 +272,10 @@ app.on('window-all-closed', () => {
 app.on('will-quit', stopBackend);
 
 module.exports = {
-  backendArgs,
+  backendCommand,
   backendPort,
-  desktopApiBaseUrl,
-  isDevMode,
+  packagedBackendPath,
+  requestBackendJson,
   startBackend,
   stopBackend,
 };
